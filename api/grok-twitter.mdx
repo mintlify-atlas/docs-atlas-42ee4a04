@@ -1,0 +1,446 @@
+---
+title: grok_twitter
+description: Search Twitter/X posts using Grok with optional handle filtering and social media trend analysis
+---
+
+## Overview
+
+The `grok_twitter` tool provides specialized search capabilities for Twitter/X posts using Grok's X search integration. It supports filtering by specific handles and, in comprehensive mode, analyzes social media trends and sentiment.
+
+## Parameters
+
+<ParamField path="query" type="string" required>
+  The search query to find tweets/posts about. Must be a non-empty string with a maximum length of 1000 characters.
+</ParamField>
+
+<ParamField path="handles" type="array">
+  Optional list of Twitter handles to search from. Handles should be provided **without the @ symbol**.
+  
+  **Format:** `["username1", "username2"]`
+  
+  **Examples:**
+  - Correct: `["elonmusk", "OpenAI", "AnthropicAI"]`
+  - Incorrect: `["@elonmusk", "@OpenAI"]` (do not include @)
+  
+  **Note:** When handles are provided, search is limited to posts from these specific accounts.
+</ParamField>
+
+<ParamField path="analysis_mode" type="string" default="basic">
+  Analysis depth and format. Must be one of:
+  - `basic` - Returns simple tweet results with content, author, and URLs
+  - `comprehensive` - Provides detailed analysis of social media trends, sentiment analysis, key themes, and influential voices
+  
+  **Default:** `basic`
+  
+  **Note:** Comprehensive mode particularly useful for understanding social media conversations and sentiment.
+</ParamField>
+
+<ParamField path="max_results" type="number" default={10}>
+  Maximum number of tweet results to return.
+  
+  **Constraints:**
+  - Minimum: 1
+  - Maximum: 20
+  - Default: 10
+</ParamField>
+
+<ParamField path="from_date" type="string">
+  Optional start date for search in ISO8601 format (YYYY-MM-DD). Limits search to content from this date onwards.
+  
+  **Validation:**
+  - Must match pattern: `^\d{4}-\d{2}-\d{2}$`
+  - Must be a valid calendar date
+  - Must be before or equal to `to_date` if both are provided
+  
+  **Example:** `2025-01-01`
+</ParamField>
+
+<ParamField path="to_date" type="string">
+  Optional end date for search in ISO8601 format (YYYY-MM-DD). Limits search to content up to this date.
+  
+  **Validation:**
+  - Must match pattern: `^\d{4}-\d{2}-\d{2}$`
+  - Must be a valid calendar date
+  - Must be after or equal to `from_date` if both are provided
+  
+  **Example:** `2025-12-31`
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```json Basic Twitter Search
+{
+  "name": "grok_twitter",
+  "arguments": {
+    "query": "artificial intelligence",
+    "max_results": 5
+  }
+}
+```
+
+```json Search Specific Handles
+{
+  "name": "grok_twitter",
+  "arguments": {
+    "query": "AI updates",
+    "handles": ["elonmusk", "OpenAI"],
+    "max_results": 10
+  }
+}
+```
+
+```json Comprehensive Social Media Analysis
+{
+  "name": "grok_twitter",
+  "arguments": {
+    "query": "climate change discussion",
+    "analysis_mode": "comprehensive",
+    "max_results": 15,
+    "from_date": "2025-02-01"
+  }
+}
+```
+
+```json Multiple Handles with Date Range
+{
+  "name": "grok_twitter",
+  "arguments": {
+    "query": "machine learning breakthroughs",
+    "handles": ["AnthropicAI", "OpenAI", "GoogleAI"],
+    "max_results": 10,
+    "from_date": "2025-01-01",
+    "to_date": "2025-03-31"
+  }
+}
+```
+
+</CodeGroup>
+
+## Response Format
+
+### Basic Mode Response
+
+```json
+{
+  "query": "artificial intelligence",
+  "analysis_mode": "basic",
+  "results": [
+    {
+      "title": "@elonmusk: Major AI breakthrough coming soon",
+      "snippet": "Working on something revolutionary in AI. Can't share details yet but it will change everything. Stay tuned for announcements next month. #AI #Innovation",
+      "url": "https://x.com/elonmusk/status/1234567890",
+      "source": "@elonmusk",
+      "published_date": "2025-03-02",
+      "author": "elonmusk",
+      "citation_url": "https://x.com/elonmusk/status/1234567890",
+      "citation_index": 0,
+      "citation_metadata": {
+        "index": 0,
+        "url": "https://x.com/elonmusk/status/1234567890",
+        "domain": "x.com",
+        "protocol": "https",
+        "is_secure": true,
+        "path": "/elonmusk/status/1234567890"
+      }
+    },
+    {
+      "title": "@OpenAI: GPT-5 research update",
+      "snippet": "Our research team has made significant progress on next-generation language models. New capabilities in reasoning and context understanding. Paper coming soon.",
+      "url": "https://x.com/OpenAI/status/1234567891",
+      "source": "@OpenAI",
+      "published_date": "2025-03-01",
+      "author": "OpenAI"
+    },
+    {
+      "title": "@AnthropicAI: Constitutional AI advances",
+      "snippet": "Excited to share our latest work on Constitutional AI and safety. Building more helpful, harmless, and honest AI systems. Check out our blog post for details.",
+      "url": "https://x.com/AnthropicAI/status/1234567892",
+      "source": "@AnthropicAI",
+      "published_date": "2025-02-28",
+      "author": "AnthropicAI"
+    }
+  ],
+  "citations": [
+    "https://x.com/elonmusk/status/1234567890",
+    "https://x.com/OpenAI/status/1234567891",
+    "https://x.com/AnthropicAI/status/1234567892"
+  ],
+  "citation_metadata": [
+    {
+      "index": 0,
+      "url": "https://x.com/elonmusk/status/1234567890",
+      "domain": "x.com",
+      "protocol": "https",
+      "is_secure": true,
+      "path": "/elonmusk/status/1234567890"
+    }
+  ],
+  "summary": "Recent Twitter discussions about artificial intelligence focus on upcoming announcements from major AI companies, research breakthroughs in language models, and advances in AI safety.",
+  "total_results": 5,
+  "search_time": "2025-03-04T12:00:00Z",
+  "source": "grok-live-search"
+}
+```
+
+### Comprehensive Mode Response
+
+```json
+{
+  "query": "climate change discussion",
+  "analysis_mode": "comprehensive",
+  "comprehensive_analysis": "The Twitter conversation around climate change during this period reveals a polarized but increasingly engaged discourse. The discussion is dominated by several key themes: policy announcements from governments, scientific findings shared by researchers, corporate sustainability commitments, and grassroots activism. Sentiment analysis shows 45% positive engagement (focused on solutions and progress), 35% concerned/urgent (emphasizing need for action), and 20% skeptical or dismissive. Influential voices include climate scientists, environmental organizations, political leaders, and business executives. The conversation shows significant spikes around major policy announcements and extreme weather events. Notably, there's increased focus on practical solutions and technology rather than just problem discussion, suggesting a shift in discourse maturity. Engagement metrics show 3.5M total impressions with peak activity on February 15 following the EU climate framework announcement...",
+  "key_findings": [
+    {
+      "category": "main_story",
+      "title": "EU Climate Policy Drives Twitter Engagement",
+      "content": "The EU carbon framework announcement generated 450K tweets in 48 hours, becoming the top climate-related topic. Engagement was 70% positive, with strong support from environmental groups and business leaders.",
+      "sources": [
+        "https://x.com/search?q=EU+climate"
+      ],
+      "confidence": "high"
+    },
+    {
+      "category": "development",
+      "title": "Scientists Share Research Findings",
+      "content": "Climate researchers increasingly using Twitter to share peer-reviewed findings directly with public. 127 climate scientists posted research summaries reaching combined audience of 8M users.",
+      "sources": [
+        "https://x.com/search?q=climate+research"
+      ],
+      "confidence": "high"
+    },
+    {
+      "category": "context",
+      "title": "Corporate Sustainability Announcements",
+      "content": "Fortune 500 companies used Twitter to announce climate commitments, generating mixed reactions. Environmental groups praised commitments while demanding accountability mechanisms.",
+      "sources": [
+        "https://x.com/search?q=corporate+climate"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "category": "impact",
+      "title": "Youth Activism Gains Momentum",
+      "content": "Student-led climate movements coordinated actions through Twitter, organizing 200+ local events with #ClimateActionNow hashtag reaching 2M users.",
+      "sources": [
+        "https://x.com/search?q=climate+activism"
+      ],
+      "confidence": "high"
+    }
+  ],
+  "timeline": [
+    {
+      "date": "2025-02-01",
+      "event": "Climate scientist thread on Arctic ice loss goes viral",
+      "source": "@ClimateScientist",
+      "significance": "First major viral climate science content of February, 500K impressions"
+    },
+    {
+      "date": "2025-02-15",
+      "event": "EU climate framework announcement sparks massive discussion",
+      "source": "Multiple sources",
+      "significance": "Peak engagement day with 450K climate-related tweets"
+    },
+    {
+      "date": "2025-02-20",
+      "event": "Corporate climate commitments announced",
+      "source": "Multiple corporations",
+      "significance": "Business sector engagement increases 300%"
+    },
+    {
+      "date": "2025-02-28",
+      "event": "#ClimateActionNow trending worldwide",
+      "source": "Youth climate activists",
+      "significance": "Grassroots movement coordination reaches new scale"
+    }
+  ],
+  "direct_quotes": [
+    {
+      "quote": "The science is clear, the time for action is now. We cannot afford another decade of half-measures.",
+      "speaker": "@DrClimateScience (Climate researcher)",
+      "context": "Thread on latest IPCC findings",
+      "source_url": "https://x.com/DrClimateScience/status/1234567890",
+      "significance": "Widely retweeted call to action from respected scientist, 50K retweets"
+    },
+    {
+      "quote": "Our company is committing $50B to carbon neutrality by 2030. This isn't just good for the planet, it's good for business.",
+      "speaker": "@TechCEO (Fortune 500 CEO)",
+      "context": "Corporate sustainability announcement",
+      "source_url": "https://x.com/TechCEO/status/1234567891",
+      "significance": "Signals business case for climate action"
+    },
+    {
+      "quote": "My generation won't inherit your climate crisis. We're fixing this now, with or without you.",
+      "speaker": "@YouthActivist (Student organizer)",
+      "context": "#ClimateActionNow campaign launch",
+      "source_url": "https://x.com/YouthActivist/status/1234567892",
+      "significance": "Rallying cry for youth movement, 100K likes"
+    }
+  ],
+  "related_context": "This Twitter discourse occurs against backdrop of increasing climate impacts and policy urgency. The conversation has matured from pure awareness-raising to solution-focused discussion. Platform algorithms appear to favor climate content, with Twitter's recommendation system boosting climate-related tweets 40% more than baseline. This represents significant shift from 2023-2024 when climate content faced algorithmic suppression concerns.",
+  "multiple_perspectives": [
+    {
+      "viewpoint": "Climate Scientists and Researchers",
+      "content": "Scientists emphasizing urgency based on latest data, using Twitter to communicate research findings directly to public. Focus on evidence-based policy recommendations and correction of misinformation.",
+      "sources": [
+        "https://x.com/search?q=climate+science"
+      ],
+      "reasoning": "Based on analysis of tweets from verified climate researchers"
+    },
+    {
+      "viewpoint": "Environmental Activists",
+      "content": "Activists demanding immediate action, critical of incremental progress. Using Twitter to organize protests and coordinate global actions. Emphasis on climate justice and equity.",
+      "sources": [
+        "https://x.com/search?q=climate+activism"
+      ],
+      "reasoning": "Based on activist organization accounts and hashtag analysis"
+    },
+    {
+      "viewpoint": "Business and Corporate Sector",
+      "content": "Companies emphasizing business opportunities in green transition, announcing sustainability commitments. Focus on market solutions and innovation. Some skepticism from critics about 'greenwashing'.",
+      "sources": [
+        "https://x.com/search?q=corporate+climate"
+      ],
+      "reasoning": "Based on corporate Twitter accounts and business leader posts"
+    },
+    {
+      "viewpoint": "Policy Makers and Politicians",
+      "content": "Political leaders highlighting policy initiatives and international cooperation. Varied by political affiliation with some emphasizing economic concerns and transition challenges.",
+      "sources": [
+        "https://x.com/search?q=climate+policy"
+      ],
+      "reasoning": "Based on verified political figure accounts"
+    },
+    {
+      "viewpoint": "Skeptics and Critics",
+      "content": "Smaller but vocal group questioning climate policies on economic grounds, criticizing costs and feasibility. Some spreading misinformation, though this is declining segment of conversation.",
+      "sources": [
+        "https://x.com/search?q=climate+skeptic"
+      ],
+      "reasoning": "Based on contrarian viewpoints in conversation"
+    }
+  ],
+  "implications": {
+    "short_term": "Twitter conversation is increasingly driving real-world climate action through organization and awareness. Corporate announcements on platform creating accountability pressure. Youth activism coordinated through Twitter leading to tangible policy engagement.",
+    "long_term": "Social media discourse may be shifting from awareness to action phase. Increased direct scientist-to-public communication could improve climate literacy. Platform's role in climate movement suggests social media is essential infrastructure for environmental organizing.",
+    "stakeholders_affected": [
+      "Climate activists using platform for organization",
+      "Scientists communicating research directly to public",
+      "Companies managing reputation and commitments",
+      "Policy makers responding to public pressure",
+      "General public accessing climate information",
+      "Twitter/X platform managing content moderation"
+    ]
+  },
+  "verification_status": {
+    "confirmed_facts": [
+      "EU climate framework announcement generated 450K tweets",
+      "127 climate scientists posted research summaries",
+      "#ClimateActionNow hashtag reached 2M users",
+      "Twitter engagement on climate increased 40% vs previous period"
+    ],
+    "unconfirmed_claims": [
+      "Exact number of organized local events (reported as 200+)",
+      "Specific corporate commitment amounts (various figures reported)"
+    ],
+    "contradictory_information": [
+      "Sentiment percentages vary by analysis method",
+      "Some engagement metrics differ across analytics tools"
+    ]
+  },
+  "raw_results": [
+    {
+      "title": "@DrClimateScience: Latest IPCC findings thread",
+      "snippet": "Thread on latest climate data and urgency of action...",
+      "url": "https://x.com/DrClimateScience/status/1234567890",
+      "relevance_score": 9.7
+    }
+  ],
+  "results": [],
+  "citations": [
+    "https://x.com/DrClimateScience/status/1234567890"
+  ],
+  "citation_metadata": [],
+  "summary": "Twitter climate discussion shows increased engagement, solution-focused discourse, and effective use of platform for organization and science communication.",
+  "total_results": 15,
+  "search_time": "2025-03-04T12:00:00Z",
+  "source": "grok-comprehensive-analysis"
+}
+```
+
+## Error Response
+
+```json
+{
+  "error": "Search query must be a non-empty string",
+  "status": "failed",
+  "query": "",
+  "search_type": "twitter",
+  "analysis_mode": "basic",
+  "timestamp": "2025-03-04T12:00:00Z",
+  "request_id": "req_1709560800000_ghi789",
+  "from_date": null,
+  "to_date": null
+}
+```
+
+## Common Error Messages
+
+- `Search query must be a non-empty string` - Query parameter is missing or empty
+- `Search query too long (max 1000 characters)` - Query exceeds maximum length
+- `from_date must be in ISO8601 format (YYYY-MM-DD)` - Invalid date format
+- `from_date must be before or equal to to_date` - Invalid date range
+- `API service is not healthy - missing XAI_API_KEY` - API key not configured
+
+## Usage Notes
+
+- **Handle Format**: Provide handles without @ symbol (e.g., `"elonmusk"` not `"@elonmusk"`)
+- **Handle Filtering**: When handles are specified, search is limited to those accounts
+- **Content Format**: Results include full tweet text in snippet field (max 280 characters)
+- **Comprehensive Analysis**: Includes sentiment analysis, trend identification, and influential voices
+- **Performance**: Basic mode provides faster responses than comprehensive mode
+- **Caching**: Comprehensive analyses are cached for 30 minutes
+- **Token Usage**: Basic mode uses ~2000 tokens, comprehensive mode uses ~4000 tokens
+- **Engagement Metrics**: Comprehensive mode may include engagement data when available
+- **Best For**: Social media monitoring, sentiment analysis, influencer tracking, trending topic research
+
+## Handle Filtering Examples
+
+### Single Handle
+```json
+{
+  "query": "AI research",
+  "handles": ["OpenAI"]
+}
+```
+Searches only tweets from @OpenAI about AI research.
+
+### Multiple Handles
+```json
+{
+  "query": "product announcements",
+  "handles": ["OpenAI", "AnthropicAI", "GoogleAI"]
+}
+```
+Searches tweets from multiple AI company accounts about product announcements.
+
+### No Handles
+```json
+{
+  "query": "machine learning"
+}
+```
+Searches all Twitter content about machine learning (no handle filtering).
+
+## When to Use Comprehensive Mode
+
+Comprehensive mode is particularly valuable for Twitter when you need:
+- Sentiment analysis of social media conversations
+- Identification of key themes and trends
+- Understanding different perspectives in a discussion
+- Tracking influential voices and viral content
+- Timeline of how a conversation developed
+- Engagement metrics and reach analysis
+
+For quick tweet lookups or monitoring specific accounts, basic mode is more efficient.

@@ -1,80 +1,489 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get started with Grok Search MCP Server in minutes
 ---
 
-## Get started in three steps
+## Prerequisites
 
-Get your documentation site running locally and make your first customization.
+Before starting, ensure you've completed the [installation](/installation) steps and have:
 
-### Step 1: Set up your local environment
+- ✅ Node.js 18+ installed
+- ✅ xAI API key configured
+- ✅ Claude Desktop setup with Grok Search server
+- ✅ Server health check passing
+
+## Your first search
+
+Let's start with a simple web search using basic mode.
+
+<Steps>
+  <Step title="Open Claude Desktop">
+    Launch Claude Desktop and ensure the Grok Search tools are available.
+  </Step>
+  
+  <Step title="Run a basic search">
+    Try this simple search:
+
+    ```json
+    {
+      "tool": "grok_search",
+      "parameters": {
+        "query": "latest AI developments",
+        "search_type": "web",
+        "max_results": 5
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Review results">
+    You'll receive structured results with titles, snippets, URLs, and citations.
+  </Step>
+</Steps>
+
+<Tip>
+  Start with `max_results` of 3-5 for faster responses and to understand the result format.
+</Tip>
+
+## Understanding the response
+
+A basic search returns structured JSON data:
+
+```json
+{
+  "query": "latest AI developments",
+  "analysis_mode": "basic",
+  "results": [
+    {
+      "title": "Article Title",
+      "snippet": "Brief summary of the content...",
+      "url": "https://example.com/article",
+      "source": "example.com",
+      "published_date": "2025-03-04",
+      "citation_url": "https://example.com/article",
+      "citation_metadata": {
+        "domain": "example.com",
+        "is_secure": true
+      }
+    }
+  ],
+  "summary": "Brief overview of findings",
+  "total_results": 5,
+  "search_time": "2025-03-04T12:00:00.000Z",
+  "source": "grok-live-search"
+}
+```
+
+<CardGroup cols={2}>
+  <Card title="results" icon="list">
+    Array of search results with title, snippet, URL, and metadata
+  </Card>
+  <Card title="summary" icon="message">
+    AI-generated overview of the search findings
+  </Card>
+  <Card title="citations" icon="quote-left">
+    Source URLs with validation and metadata
+  </Card>
+  <Card title="search_time" icon="clock">
+    ISO8601 timestamp of when the search was performed
+  </Card>
+</CardGroup>
+
+## Common search patterns
+
+### Web search
+
+Search general web content:
+
+<CodeGroup>
+```json Simple query
+{
+  "tool": "grok_web_search",
+  "parameters": {
+    "query": "quantum computing basics",
+    "max_results": 5
+  }
+}
+```
+
+```json With date filter
+{
+  "tool": "grok_web_search",
+  "parameters": {
+    "query": "quantum computing breakthroughs",
+    "from_date": "2025-01-01",
+    "to_date": "2025-03-04",
+    "max_results": 10
+  }
+}
+```
+</CodeGroup>
+
+### News search
+
+Search for recent news and current events:
+
+<CodeGroup>
+```json Recent news
+{
+  "tool": "grok_news_search",
+  "parameters": {
+    "query": "technology industry news",
+    "max_results": 5
+  }
+}
+```
+
+```json Date-filtered news
+{
+  "tool": "grok_news_search",
+  "parameters": {
+    "query": "climate change policy",
+    "from_date": "2025-03-01",
+    "max_results": 10
+  }
+}
+```
+</CodeGroup>
+
+### Twitter/X search
+
+Search social media posts:
+
+<CodeGroup>
+```json General Twitter search
+{
+  "tool": "grok_twitter",
+  "parameters": {
+    "query": "artificial intelligence trends",
+    "max_results": 10
+  }
+}
+```
+
+```json Filter by handles
+{
+  "tool": "grok_twitter",
+  "parameters": {
+    "query": "AI developments",
+    "handles": ["elonmusk", "OpenAI", "AnthropicAI"],
+    "max_results": 15
+  }
+}
+```
+</CodeGroup>
+
+<Note>
+  Twitter handles should be provided **without** the @ symbol. Use `"elonmusk"` not `"@elonmusk"`.
+</Note>
+
+## Comprehensive analysis mode
+
+For detailed analysis with timelines, quotes, and multiple perspectives, use comprehensive mode:
+
+```json
+{
+  "tool": "grok_news_search",
+  "parameters": {
+    "query": "US economic policy 2025",
+    "analysis_mode": "comprehensive",
+    "max_results": 10,
+    "from_date": "2025-01-01"
+  }
+}
+```
+
+### Comprehensive response structure
 
 <AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
+  <Accordion title="comprehensive_analysis" icon="file-lines">
+    A detailed 500+ word analysis providing deep context, background, and implications with specific details, dates, and numbers.
   </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
+  
+  <Accordion title="key_findings" icon="star">
+    Array of categorized findings (main_story, development, context, impact) with content, sources, and confidence levels.
+  </Accordion>
+  
+  <Accordion title="timeline" icon="timeline">
+    Chronological events with dates, descriptions, sources, and significance explanations.
+  </Accordion>
+  
+  <Accordion title="direct_quotes" icon="quote-left">
+    Exact quotes with speaker attribution, context, source URLs, and significance.
+  </Accordion>
+  
+  <Accordion title="multiple_perspectives" icon="users">
+    Different viewpoints (supporters, critics, experts) with content, sources, and reasoning.
+  </Accordion>
+  
+  <Accordion title="implications" icon="lightbulb">
+    Short-term and long-term consequences with affected stakeholders.
+  </Accordion>
+  
+  <Accordion title="verification_status" icon="shield-check">
+    Confirmed facts, unconfirmed claims, and contradictory information tracking.
   </Accordion>
 </AccordionGroup>
 
-### Step 2: Deploy your changes
+<Warning>
+  Comprehensive mode uses more API tokens (~4000 vs ~2000 for basic) and takes longer to process. Use it when you need detailed analysis, not for simple queries.
+</Warning>
+
+## Date filtering
+
+All search tools support date range filtering using ISO8601 format:
+
+```json
+{
+  "tool": "grok_search",
+  "parameters": {
+    "query": "space exploration missions",
+    "search_type": "news",
+    "from_date": "2025-02-01",
+    "to_date": "2025-03-04",
+    "max_results": 10
+  }
+}
+```
+
+### Date format requirements
+
+<CardGroup cols={2}>
+  <Card title="Format" icon="calendar">
+    `YYYY-MM-DD` (ISO8601)
+  </Card>
+  <Card title="Example" icon="check">
+    `2025-03-04` ✓
+  </Card>
+  <Card title="Invalid" icon="xmark">
+    `03/04/2025` ✗
+  </Card>
+  <Card title="Rule" icon="scale-balanced">
+    `from_date` ≤ `to_date`
+  </Card>
+</CardGroup>
+
+## Health check
+
+Monitor server status and performance:
+
+```json
+{
+  "tool": "health_check",
+  "parameters": {}
+}
+```
+
+**Response:**
+
+```json
+{
+  "server_healthy": true,
+  "api_healthy": true,
+  "uptime_ms": 3600000,
+  "total_requests": 150,
+  "error_count": 3,
+  "success_rate": "98.00%",
+  "api_details": {
+    "hasApiKey": true,
+    "cacheSize": 12,
+    "lastError": null
+  }
+}
+```
+
+<Tip>
+  Run health checks regularly to monitor server performance and diagnose issues early.
+</Tip>
+
+## Best practices
+
+### Query optimization
+
+<Steps>
+  <Step title="Be specific">
+    Use clear, specific queries rather than vague terms.
+    
+    ✓ "SpaceX Starship launch March 2025"
+    
+    ✗ "rocket news"
+  </Step>
+  
+  <Step title="Choose the right search type">
+    - **web**: General information, articles, guides
+    - **news**: Current events, breaking news
+    - **twitter**: Social media sentiment, influencer opinions
+  </Step>
+  
+  <Step title="Use date filters wisely">
+    For time-sensitive topics, use date ranges to narrow results to relevant time periods.
+  </Step>
+  
+  <Step title="Start with basic mode">
+    Test queries in basic mode first, then use comprehensive for detailed analysis when needed.
+  </Step>
+</Steps>
+
+### Performance optimization
+
+<CardGroup cols={2}>
+  <Card title="Limit results" icon="gauge-high">
+    Use 5-10 results for most queries. More results = longer processing time.
+  </Card>
+  <Card title="Basic vs comprehensive" icon="scale-balanced">
+    Basic mode: Fast, 2000 tokens
+    
+    Comprehensive: Slow, 4000 tokens
+  </Card>
+  <Card title="Caching" icon="database">
+    Comprehensive analyses are cached for 30 minutes to reduce API usage.
+  </Card>
+  <Card title="Date ranges" icon="calendar-range">
+    Narrow date ranges return more focused, relevant results faster.
+  </Card>
+</CardGroup>
+
+## Example workflows
+
+### Research workflow
+
+<Steps>
+  <Step title="Initial broad search">
+    ```json
+    {
+      "tool": "grok_web_search",
+      "parameters": {
+        "query": "renewable energy technologies",
+        "max_results": 5
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Deep dive with comprehensive analysis">
+    ```json
+    {
+      "tool": "grok_web_search",
+      "parameters": {
+        "query": "solar panel efficiency breakthroughs 2025",
+        "analysis_mode": "comprehensive",
+        "from_date": "2025-01-01",
+        "max_results": 10
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Check social sentiment">
+    ```json
+    {
+      "tool": "grok_twitter",
+      "parameters": {
+        "query": "solar energy adoption",
+        "max_results": 10
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+### News monitoring workflow
+
+<Steps>
+  <Step title="Recent headlines">
+    ```json
+    {
+      "tool": "grok_news_search",
+      "parameters": {
+        "query": "tech industry layoffs",
+        "from_date": "2025-03-01",
+        "max_results": 5
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Comprehensive timeline">
+    ```json
+    {
+      "tool": "grok_news_search",
+      "parameters": {
+        "query": "tech industry layoffs 2025",
+        "analysis_mode": "comprehensive",
+        "from_date": "2025-01-01",
+        "max_results": 15
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Common issues and solutions
 
 <AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
+  <Accordion title="Empty or poor results">
+    **Try these solutions:**
     
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
+    1. Rephrase your query to be more specific
+    2. Try a different search type (web vs news vs twitter)
+    3. Expand your date range or remove date filters
+    4. Check if the topic has sufficient online coverage
+    5. Use basic mode if comprehensive mode returns limited results
+  </Accordion>
+  
+  <Accordion title="Request timeout errors">
+    **Solutions:**
+    
+    1. Reduce `max_results` parameter
+    2. Use basic mode instead of comprehensive
+    3. Increase `GROK_TIMEOUT` in configuration
+    4. Check your internet connection
+    5. Verify API service status with health_check
+  </Accordion>
+  
+  <Accordion title="API key errors">
+    **Verify:**
+    
+    1. API key starts with `xai-`
+    2. No extra spaces or quotes in configuration
+    3. Key is active in xAI Developer Portal
+    4. Environment variable name is exactly `XAI_API_KEY`
+    
+    Run health_check to diagnose API connectivity.
+  </Accordion>
+  
+  <Accordion title="Invalid date format errors">
+    **Requirements:**
+    
+    - Format: `YYYY-MM-DD` exactly
+    - Valid dates only (no 2025-02-30)
+    - `from_date` must be ≤ `to_date`
+    
+    **Examples:**
+    
+    ✓ `"2025-03-04"`
+    
+    ✗ `"03/04/2025"`, `"2025-3-4"`, `"2025-02-30"`
   </Accordion>
 </AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="API reference" icon="book" href="/api/grok-search">
+    Explore detailed documentation for all tools and parameters
+  </Card>
+  <Card title="Analysis modes" icon="code" href="/concepts/analysis-modes">
+    Learn about basic and comprehensive analysis modes
+  </Card>
+  <Card title="Configuration" icon="gear" href="/guides/configuration">
+    Learn about advanced configuration options
+  </Card>
+  <Card title="Error handling" icon="wrench" href="/guides/error-handling">
+    Get help with common issues and error messages
+  </Card>
 </CardGroup>
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  For questions or issues, visit the [GitHub repository](https://github.com/stat-guy/grok-search-mcp) to create an issue.
 </Note>

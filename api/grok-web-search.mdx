@@ -1,0 +1,206 @@
+---
+title: grok_web_search
+description: Search general web content using Grok with support for comprehensive analysis mode
+---
+
+## Overview
+
+The `grok_web_search` tool provides focused web content search capabilities, specifically optimized for articles, blogs, and informational pages. It supports both basic results and comprehensive analysis with detailed insights.
+
+## Parameters
+
+<ParamField path="query" type="string" required>
+  The web search query. Must be a non-empty string with a maximum length of 1000 characters.
+</ParamField>
+
+<ParamField path="analysis_mode" type="string" default="basic">
+  Analysis depth and format. Must be one of:
+  - `basic` - Returns simple search results with titles, snippets, and URLs
+  - `comprehensive` - Provides detailed analysis with timelines, quotes, multiple perspectives, and context (500+ word analysis)
+  
+  **Default:** `basic`
+  
+  **Note:** Comprehensive analyses are cached for 30 minutes.
+</ParamField>
+
+<ParamField path="max_results" type="number" default={10}>
+  Maximum number of results to return.
+  
+  **Constraints:**
+  - Minimum: 1
+  - Maximum: 20
+  - Default: 10
+</ParamField>
+
+<ParamField path="from_date" type="string">
+  Optional start date for search in ISO8601 format (YYYY-MM-DD). Limits search to content from this date onwards.
+  
+  **Validation:**
+  - Must match pattern: `^\d{4}-\d{2}-\d{2}$`
+  - Must be a valid calendar date
+  - Must be before or equal to `to_date` if both are provided
+  
+  **Example:** `2025-01-01`
+</ParamField>
+
+<ParamField path="to_date" type="string">
+  Optional end date for search in ISO8601 format (YYYY-MM-DD). Limits search to content up to this date.
+  
+  **Validation:**
+  - Must match pattern: `^\d{4}-\d{2}-\d{2}$`
+  - Must be a valid calendar date
+  - Must be after or equal to `from_date` if both are provided
+  
+  **Example:** `2025-12-31`
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```json Basic Web Search
+{
+  "name": "grok_web_search",
+  "arguments": {
+    "query": "Model Context Protocol MCP",
+    "max_results": 5
+  }
+}
+```
+
+```json Web Search with Date Filter
+{
+  "name": "grok_web_search",
+  "arguments": {
+    "query": "artificial intelligence frameworks",
+    "max_results": 10,
+    "from_date": "2024-01-01",
+    "to_date": "2024-12-31"
+  }
+}
+```
+
+```json Comprehensive Web Analysis
+{
+  "name": "grok_web_search",
+  "arguments": {
+    "query": "machine learning best practices",
+    "analysis_mode": "comprehensive",
+    "max_results": 15
+  }
+}
+```
+
+</CodeGroup>
+
+## Response Format
+
+### Basic Mode Response
+
+```json
+{
+  "query": "Model Context Protocol MCP",
+  "analysis_mode": "basic",
+  "results": [
+    {
+      "title": "Introduction to Model Context Protocol",
+      "snippet": "The Model Context Protocol (MCP) is an open standard that enables seamless integration between AI applications and data sources...",
+      "url": "https://modelcontextprotocol.io/introduction",
+      "source": "MCP Documentation",
+      "published_date": "2024-11-25",
+      "author": "Anthropic",
+      "citation_url": "https://modelcontextprotocol.io/introduction",
+      "citation_index": 0,
+      "citation_metadata": {
+        "index": 0,
+        "url": "https://modelcontextprotocol.io/introduction",
+        "domain": "modelcontextprotocol.io",
+        "protocol": "https",
+        "is_secure": true,
+        "path": "/introduction"
+      }
+    },
+    {
+      "title": "Building MCP Servers",
+      "snippet": "Learn how to build Model Context Protocol servers to expose data and functionality to AI applications...",
+      "url": "https://modelcontextprotocol.io/docs/building-servers",
+      "source": "MCP Documentation",
+      "published_date": "2024-12-01",
+      "citation_url": "https://modelcontextprotocol.io/docs/building-servers",
+      "citation_index": 1
+    }
+  ],
+  "citations": [
+    "https://modelcontextprotocol.io/introduction",
+    "https://modelcontextprotocol.io/docs/building-servers"
+  ],
+  "citation_metadata": [
+    {
+      "index": 0,
+      "url": "https://modelcontextprotocol.io/introduction",
+      "domain": "modelcontextprotocol.io",
+      "protocol": "https",
+      "is_secure": true,
+      "path": "/introduction"
+    },
+    {
+      "index": 1,
+      "url": "https://modelcontextprotocol.io/docs/building-servers",
+      "domain": "modelcontextprotocol.io",
+      "protocol": "https",
+      "is_secure": true,
+      "path": "/docs/building-servers"
+    }
+  ],
+  "summary": "The Model Context Protocol is an open standard for connecting AI applications with data sources, enabling better context sharing and integration.",
+  "total_results": 5,
+  "search_time": "2025-03-04T12:00:00Z",
+  "source": "grok-live-search"
+}
+```
+
+### Comprehensive Mode Response
+
+See [grok_search comprehensive response](/api/grok-search#comprehensive-mode-response) for the full comprehensive analysis structure. The `grok_web_search` tool returns the same comprehensive format with web-focused content.
+
+## Error Response
+
+```json
+{
+  "error": "Search query must be a non-empty string",
+  "status": "failed",
+  "query": "",
+  "search_type": "web",
+  "analysis_mode": "basic",
+  "timestamp": "2025-03-04T12:00:00Z",
+  "request_id": "req_1709560800000_xyz789",
+  "from_date": null,
+  "to_date": null
+}
+```
+
+## Common Error Messages
+
+- `Search query must be a non-empty string` - Query parameter is missing or empty
+- `Search query too long (max 1000 characters)` - Query exceeds maximum length
+- `from_date must be in ISO8601 format (YYYY-MM-DD)` - Invalid date format
+- `from_date must be before or equal to to_date` - Invalid date range
+- `API service is not healthy - missing XAI_API_KEY` - API key not configured
+
+## Usage Notes
+
+- **Content Focus**: Optimized for articles, blogs, documentation, and general web pages
+- **Search Sources**: Uses web content sources exclusively (no news or social media)
+- **Performance**: Basic mode provides faster responses than comprehensive mode
+- **Caching**: Comprehensive analyses are cached for 30 minutes to improve performance
+- **Token Usage**: Basic mode uses ~2000 tokens, comprehensive mode uses ~4000 tokens
+- **Best For**: Technical documentation, tutorials, blog posts, and general information queries
+
+## Comparison with grok_search
+
+While `grok_search` supports multiple search types (web, news, general), `grok_web_search` is specifically optimized for web content:
+
+- **grok_web_search**: Fixed to web content sources only
+- **grok_search**: Configurable search type (web, news, general, twitter)
+
+Use `grok_web_search` when you specifically want web content without news or social media results.

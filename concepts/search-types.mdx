@@ -1,0 +1,406 @@
+---
+title: 'Search Types'
+description: 'Explore web, news, and Twitter/X search types with specific source configurations'
+---
+
+## Overview
+
+Grok Search MCP Server supports multiple search types, each optimized for different content sources. The `search_type` parameter determines which sources are queried and how results are processed.
+
+## Available Search Types
+
+<Tabs>
+  <Tab title="Web Search">
+    ## Web Search
+
+    Search across general web content including articles, blogs, and informational pages.
+
+    ### Source Configuration
+
+    ```javascript
+    // index.js:285-301
+    getSearchSources(searchType, handles = null) {
+      switch (searchType) {
+        case "web":
+          return [{"type": "web"}];
+        // ...
+      }
+    }
+    ```
+
+    ### System Prompt Specialization
+
+    ```javascript
+    // Basic mode prompt for web search
+    case "web":
+      return basePrompt + `\n\nSearch across general web content 
+including articles, blogs, and informational pages.`;
+    ```
+
+    ```javascript
+    // Comprehensive mode prompt for web search  
+    case "web":
+      return comprehensivePrompt + `\n\nFOCUS: General web content 
+analysis including articles, blogs, and informational sources. 
+Emphasize factual accuracy and diverse source perspectives.`;
+    ```
+
+    ### Tool Usage
+
+    ```json
+    {
+      "tool": "grok_web_search",
+      "parameters": {
+        "query": "machine learning tutorials",
+        "max_results": 10,
+        "analysis_mode": "basic"
+      }
+    }
+    ```
+
+    Or use the universal search tool:
+
+    ```json
+    {
+      "tool": "grok_search",
+      "parameters": {
+        "query": "machine learning tutorials",
+        "search_type": "web",
+        "max_results": 10
+      }
+    }
+    ```
+
+    ### Best Use Cases
+
+    <CardGroup cols={2}>
+      <Card title="Documentation" icon="book">
+        Finding technical documentation, guides, and how-to articles
+      </Card>
+      <Card title="Research" icon="flask">
+        Academic papers, research articles, and educational content
+      </Card>
+      <Card title="Product Info" icon="cart-shopping">
+        Product reviews, comparisons, and specifications
+      </Card>
+      <Card title="General Info" icon="circle-info">
+        Broad informational content across various domains
+      </Card>
+    </CardGroup>
+  </Tab>
+
+  <Tab title="News Search">
+    ## News Search
+
+    Search recent news articles and current events with emphasis on recency and credibility.
+
+    ### Source Configuration
+
+    ```javascript
+    // index.js:285-301
+    case "news":
+      return [{"type": "news"}, {"type": "web"}];
+    ```
+
+    <Note>
+    News search queries both dedicated news sources and general web to ensure comprehensive coverage.
+    </Note>
+
+    ### System Prompt Specialization
+
+    ```javascript
+    // Basic mode prompt for news search
+    case "news":
+      return basePrompt + `\n\nFocus on recent news articles and 
+current events. Prioritize the most recent information.`;
+    ```
+
+    ```javascript
+    // Comprehensive mode prompt for news search
+    case "news":
+      return comprehensivePrompt + `\n\nFOCUS: Recent news events, 
+breaking developments, and current affairs. Emphasize timeline 
+analysis, official statements, and evolving situation updates.`;
+    ```
+
+    ### Tool Usage
+
+    ```json
+    {
+      "tool": "grok_news_search",
+      "parameters": {
+        "query": "technology industry updates",
+        "max_results": 15,
+        "analysis_mode": "comprehensive",
+        "from_date": "2025-03-01"
+      }
+    }
+    ```
+
+    ### Date Filtering
+
+    News searches benefit greatly from date filters:
+
+    ```javascript
+    // Date parameters are added to search_parameters
+    if (validatedFromDate) {
+      searchParams.from_date = validatedFromDate;
+    }
+    if (validatedToDate) {
+      searchParams.to_date = validatedToDate;
+    }
+    ```
+
+    Example with date range:
+
+    ```json
+    {
+      "tool": "grok_news_search",
+      "parameters": {
+        "query": "AI policy developments",
+        "from_date": "2025-02-01",
+        "to_date": "2025-03-04",
+        "max_results": 10
+      }
+    }
+    ```
+
+    ### Comprehensive Mode Benefits
+
+    For news searches, comprehensive mode provides:
+
+    - **Timeline Analysis**: Chronological event tracking
+    - **Direct Quotes**: Official statements from key figures
+    - **Multiple Perspectives**: Different viewpoints on events
+    - **Verification Status**: Confirmed vs unconfirmed information
+
+    ### Best Use Cases
+
+    <CardGroup cols={2}>
+      <Card title="Breaking News" icon="newspaper">
+        Latest developments and real-time updates
+      </Card>
+      <Card title="Current Events" icon="globe">
+        Ongoing situations and evolving stories
+      </Card>
+      <Card title="Trend Analysis" icon="chart-line">
+        Understanding patterns in recent events
+      </Card>
+      <Card title="Fact-Checking" icon="check-double">
+        Verifying claims with multiple news sources
+      </Card>
+    </CardGroup>
+  </Tab>
+
+  <Tab title="Twitter/X Search">
+    ## Twitter/X Search
+
+    Search Twitter/X posts with optional handle filtering for social media insights and real-time reactions.
+
+    ### Source Configuration
+
+    ```javascript
+    // index.js:285-301
+    case "twitter":
+    case "x":
+      const xSource = {"type": "x"};
+      if (handles && handles.length > 0) {
+        xSource.x_handles = handles;
+      }
+      return [xSource];
+    ```
+
+    ### Handle Filtering
+
+    Filter results to specific Twitter accounts:
+
+    ```json
+    {
+      "tool": "grok_twitter",
+      "parameters": {
+        "query": "AI announcements",
+        "handles": ["OpenAI", "AnthropicAI", "GoogleAI"],
+        "max_results": 20
+      }
+    }
+    ```
+
+    <Warning>
+    Handles should be provided **without** the @ symbol. Use `"elonmusk"` not `"@elonmusk"`.
+    </Warning>
+
+    ### System Prompt Specialization
+
+    ```javascript
+    // Basic mode prompt for Twitter/X search
+    case "twitter":
+    case "x":
+      return basePrompt + `\n\nSearch Twitter/X posts and tweets. 
+Include the full tweet text in the snippet field, the author's 
+handle, and tweet URL if available. Focus on recent posts 
+and engagement.`;
+    ```
+
+    ```javascript
+    // Comprehensive mode prompt for Twitter/X search
+    case "twitter":
+    case "x":
+      return comprehensivePrompt + `\n\nFOCUS: Social media analysis 
+including tweet sentiment, trending topics, and public opinion. 
+Include influencer perspectives and viral content analysis.`;
+    ```
+
+    ### Result Format
+
+    Twitter results include tweet-specific fields:
+
+    ```json
+    {
+      "title": "Tweet content preview",
+      "snippet": "Full tweet text (max 280 characters)",
+      "url": "https://twitter.com/username/status/123",
+      "source": "Twitter",
+      "author": "@username",
+      "published_date": "2025-03-04"
+    }
+    ```
+
+    ### Comprehensive Twitter Analysis
+
+    When using comprehensive mode with Twitter searches:
+
+    ```json
+    {
+      "tool": "grok_twitter",
+      "parameters": {
+        "query": "developer opinions on new framework",
+        "analysis_mode": "comprehensive",
+        "max_results": 15,
+        "from_date": "2025-03-01"
+      }
+    }
+    ```
+
+    Returns analysis including:
+    - Sentiment trends across tweets
+    - Key influencer perspectives
+    - Viral content identification
+    - Public opinion breakdown
+
+    ### Best Use Cases
+
+    <CardGroup cols={2}>
+      <Card title="Sentiment Analysis" icon="chart-mixed">
+        Gauge public opinion on topics
+      </Card>
+      <Card title="Trend Monitoring" icon="fire">
+        Track viral content and trending discussions
+      </Card>
+      <Card title="Influencer Insights" icon="users">
+        Monitor specific accounts and thought leaders
+      </Card>
+      <Card title="Real-time Reactions" icon="comments">
+        Capture immediate responses to events
+      </Card>
+    </CardGroup>
+  </Tab>
+
+  <Tab title="General Search">
+    ## General Search
+
+    Comprehensive search across all source types for the most complete results.
+
+    ### Source Configuration
+
+    ```javascript
+    // index.js:285-301
+    case "general":
+    default:
+      return [{"type": "web"}, {"type": "news"}, {"type": "x"}];
+    ```
+
+    <Info>
+    General search queries all three source types: web content, news articles, and Twitter/X posts.
+    </Info>
+
+    ### System Prompt
+
+    ```javascript
+    // Comprehensive mode general search
+    case "general":
+    default:
+      return comprehensivePrompt + `\n\nFOCUS: Comprehensive analysis 
+across all source types - news, web content, and social media. 
+Provide the most complete picture possible.`;
+    ```
+
+    ### Tool Usage
+
+    ```json
+    {
+      "tool": "grok_search",
+      "parameters": {
+        "query": "impact of new technology release",
+        "search_type": "general",
+        "analysis_mode": "comprehensive",
+        "max_results": 20
+      }
+    }
+    ```
+
+    ### When to Use
+
+    General search is ideal when:
+    - You need the broadest perspective
+    - Topic spans multiple content types
+    - You want to compare official news vs social reaction
+    - Comprehensive coverage is more important than speed
+  </Tab>
+</Tabs>
+
+## Search Type Determination
+
+The server automatically determines the search type based on the tool called:
+
+```javascript
+// index.js:841-853
+let actualSearchType = search_type;
+let searchHandles = handles;
+
+if (toolName === "grok_web_search") {
+  actualSearchType = "web";
+} else if (toolName === "grok_news_search") {
+  actualSearchType = "news";
+} else if (toolName === "grok_twitter") {
+  actualSearchType = "twitter";
+  searchHandles = handles;
+}
+```
+
+## Search Parameters
+
+All search types support these common parameters:
+
+```javascript
+const searchParams = {
+  mode: "on",
+  return_citations: true,
+  max_search_results: maxResults,
+  sources: this.getSearchSources(searchType, handles)
+};
+```
+
+## Comparison Matrix
+
+| Feature | Web | News | Twitter/X | General |
+|---------|-----|------|-----------|----------|
+| **Sources** | Web only | News + Web | X only | All three |
+| **Speed** | Fast | Fast | Fast | Moderate |
+| **Recency Focus** | Medium | High | Very High | High |
+| **Handle Filtering** | No | No | Yes | No |
+| **Best For** | Evergreen content | Current events | Social sentiment | Comprehensive view |
+| **Citation Types** | URLs | News URLs | Tweet URLs | Mixed |
+
+<Tip>
+For time-sensitive topics, combine news or Twitter search types with date range filtering for optimal results.
+</Tip>

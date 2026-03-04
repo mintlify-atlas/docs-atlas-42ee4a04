@@ -1,0 +1,271 @@
+---
+title: 'Analysis Modes'
+description: 'Understanding basic and comprehensive analysis modes for search results'
+---
+
+## Overview
+
+Grok Search MCP Server provides two distinct analysis modes that determine the depth and structure of search results. The `analysis_mode` parameter controls whether you receive simple search results or comprehensive analytical insights.
+
+<Tabs>
+  <Tab title="Basic Mode">
+    ## Basic Mode
+
+    Basic mode returns straightforward search results with minimal processing overhead. This mode is optimized for speed and simple queries where you need quick, factual information.
+
+    ### Characteristics
+
+    - **Token Limit**: ~2,000 tokens maximum
+    - **Response Time**: Fast (typically 2-5 seconds)
+    - **Caching**: Not cached
+    - **Best For**: Quick lookups, simple queries, real-time information
+
+    ### Response Structure
+
+    ```json
+    {
+      "query": "your search query",
+      "analysis_mode": "basic",
+      "results": [
+        {
+          "title": "Article title or tweet content preview",
+          "snippet": "Brief summary (max 280 chars for tweets)",
+          "url": "Source URL",
+          "source": "Source name or handle",
+          "published_date": "YYYY-MM-DD",
+          "author": "Author name"
+        }
+      ],
+      "summary": "Brief overview of findings",
+      "total_results": 10,
+      "citations": ["url1", "url2"],
+      "search_time": "2025-03-04T10:30:00Z"
+    }
+    ```
+
+    ### System Prompt (Basic)
+
+    The server uses focused prompts for basic mode:
+
+    ```javascript
+    const basePrompt = `Provide current, accurate information about 
+the following topic using live search data. Format your response 
+as JSON with this exact structure:
+{
+  "results": [
+    {
+      "title": "Article title or tweet content preview",
+      "snippet": "Brief summary",
+      "url": "Source URL",
+      "source": "Source name",
+      "published_date": "YYYY-MM-DD",
+      "author": "Author name"
+    }
+  ],
+  "summary": "Brief overview of findings"
+}`;
+    ```
+
+    ### Example Usage
+
+    ```json
+    {
+      "tool": "grok_search",
+      "parameters": {
+        "query": "latest tech news",
+        "analysis_mode": "basic",
+        "max_results": 5
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Comprehensive Mode">
+    ## Comprehensive Mode
+
+    Comprehensive mode provides deep, structured analysis with timelines, quotes, multiple perspectives, and detailed context. This mode is designed for research, investigation, and understanding complex topics.
+
+    ### Characteristics
+
+    - **Token Limit**: ~4,000 tokens maximum
+    - **Response Time**: Slower (typically 10-20 seconds)
+    - **Caching**: Automatically cached for 30 minutes
+    - **Best For**: Research, analysis, complex topics, multiple perspectives
+
+    ### Response Structure
+
+    ```json
+    {
+      "query": "original search query",
+      "analysis_mode": "comprehensive",
+      "comprehensive_analysis": "500+ word detailed analysis",
+      "key_findings": [
+        {
+          "category": "main_story|development|context|impact",
+          "title": "Specific finding title",
+          "content": "Detailed explanation",
+          "sources": ["url1", "url2"],
+          "confidence": "high|medium|low"
+        }
+      ],
+      "timeline": [
+        {
+          "date": "YYYY-MM-DD",
+          "event": "Specific event description",
+          "source": "Source name",
+          "significance": "Why this matters"
+        }
+      ],
+      "direct_quotes": [
+        {
+          "quote": "Exact quote",
+          "speaker": "Speaker name and title",
+          "context": "When and where",
+          "source_url": "URL",
+          "significance": "Why important"
+        }
+      ],
+      "related_context": "Historical background",
+      "multiple_perspectives": [
+        {
+          "viewpoint": "Perspective group",
+          "content": "What this group thinks",
+          "sources": ["url1"],
+          "reasoning": "Why they hold this position"
+        }
+      ],
+      "implications": {
+        "short_term": "Immediate consequences",
+        "long_term": "Long-term impacts",
+        "stakeholders_affected": ["Group 1", "Group 2"]
+      },
+      "verification_status": {
+        "confirmed_facts": ["Verified information"],
+        "unconfirmed_claims": ["Claims needing verification"],
+        "contradictory_information": ["Conflicting reports"]
+      },
+      "raw_results": [
+        {
+          "title": "Source title",
+          "snippet": "Description",
+          "url": "URL",
+          "relevance_score": 8
+        }
+      ]
+    }
+    ```
+
+    ### System Prompt (Comprehensive)
+
+    The comprehensive mode uses detailed analytical prompts:
+
+    ```javascript
+    const comprehensivePrompt = `You are a comprehensive research analyst. 
+Provide deep, detailed analysis of the search topic using live search data.
+
+CRITICAL INSTRUCTIONS:
+1. Extract SPECIFIC details: exact dates, numbers, names, locations
+2. Include DIRECT QUOTES with full attribution
+3. Create a TIMELINE of events with precise dates
+4. Analyze MULTIPLE PERSPECTIVES from different stakeholders
+5. Provide HISTORICAL CONTEXT and background
+6. Identify IMPLICATIONS and consequences
+7. Verify information status and note contradictions
+8. Be comprehensive but accurate - do not invent information`;
+    ```
+
+    ### Example Usage
+
+    ```json
+    {
+      "tool": "grok_news_search",
+      "parameters": {
+        "query": "climate policy changes 2025",
+        "analysis_mode": "comprehensive",
+        "max_results": 10,
+        "from_date": "2025-01-01"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Token Allocation
+
+The implementation allocates different token budgets based on mode:
+
+```javascript
+const requestData = {
+  model: "grok-3-latest",
+  messages: [...],
+  max_tokens: analysisMode === "comprehensive" ? 4000 : 2000,
+  temperature: 0.1,
+  stream: false,
+  search_parameters: searchParams
+};
+```
+
+## Mode Selection Guidelines
+
+<CardGroup cols={2}>
+  <Card title="Use Basic Mode When" icon="bolt">
+    - You need quick results
+    - Query is simple and specific
+    - Real-time data is critical
+    - You want to minimize token usage
+  </Card>
+
+  <Card title="Use Comprehensive Mode When" icon="microscope">
+    - Researching complex topics
+    - Need multiple perspectives
+    - Want timeline analysis
+    - Require verified facts vs claims
+  </Card>
+</CardGroup>
+
+## Performance Comparison
+
+| Metric | Basic Mode | Comprehensive Mode |
+|--------|------------|--------------------|
+| Max Tokens | 2,000 | 4,000 |
+| Typical Response Time | 2-5 seconds | 10-20 seconds |
+| Caching | No | Yes (30 min TTL) |
+| Result Depth | Simple list | Multi-layered analysis |
+| Citations | URLs only | Full metadata |
+
+<Note>
+Comprehensive analyses are automatically cached for 30 minutes to improve performance on repeat queries. Cache keys include all parameters to ensure accuracy.
+</Note>
+
+## Implementation Details
+
+The mode affects response parsing logic:
+
+```javascript
+if (analysisMode === "comprehensive" && parsedResults.analysis_mode === "comprehensive") {
+  // Handle comprehensive analysis response
+  finalResponse = {
+    query: query,
+    analysis_mode: "comprehensive",
+    comprehensive_analysis: parsedResults.comprehensive_analysis || "",
+    key_findings: parsedResults.key_findings || [],
+    timeline: parsedResults.timeline || [],
+    direct_quotes: parsedResults.direct_quotes || [],
+    related_context: parsedResults.related_context || "",
+    multiple_perspectives: parsedResults.multiple_perspectives || [],
+    implications: parsedResults.implications || {},
+    verification_status: parsedResults.verification_status || {},
+    raw_results: parsedResults.raw_results || parsedResults.results || [],
+    summary: parsedResults.summary || "",
+    total_results: (parsedResults.raw_results || parsedResults.results || []).length,
+    search_time: new Date().toISOString(),
+    source: "grok-comprehensive-analysis",
+    citations: citations,
+    citation_metadata: citationMetadata
+  };
+}
+```
+
+<Info>
+All search tools support both analysis modes via the `analysis_mode` parameter. The default is `"basic"` if not specified.
+</Info>

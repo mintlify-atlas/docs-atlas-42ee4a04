@@ -1,0 +1,387 @@
+---
+title: health_check
+description: Monitor the health status of the Grok Search MCP server and API connectivity
+---
+
+## Overview
+
+The `health_check` tool provides diagnostic information about the Grok Search MCP server's operational status, API connectivity, and performance metrics. Use this tool to verify server health, diagnose configuration issues, and monitor performance.
+
+## Parameters
+
+This tool requires no parameters.
+
+```json
+{
+  "name": "health_check",
+  "arguments": {}
+}
+```
+
+## Request Example
+
+```json
+{
+  "name": "health_check",
+  "arguments": {}
+}
+```
+
+## Response Format
+
+### Healthy Server Response
+
+```json
+{
+  "server_healthy": true,
+  "api_healthy": true,
+  "uptime_ms": 3600000,
+  "total_requests": 142,
+  "error_count": 3,
+  "success_rate": "97.89%",
+  "api_details": {
+    "hasApiKey": true,
+    "cacheSize": 15,
+    "lastError": null
+  }
+}
+```
+
+### Unhealthy Server Response (Missing API Key)
+
+```json
+{
+  "server_healthy": true,
+  "api_healthy": false,
+  "uptime_ms": 120000,
+  "total_requests": 5,
+  "error_count": 5,
+  "success_rate": "0.00%",
+  "api_details": {
+    "hasApiKey": false,
+    "cacheSize": 0,
+    "lastError": "API service is not healthy - missing XAI_API_KEY"
+  }
+}
+```
+
+### Server with Recent Errors
+
+```json
+{
+  "server_healthy": true,
+  "api_healthy": true,
+  "uptime_ms": 7200000,
+  "total_requests": 256,
+  "error_count": 12,
+  "success_rate": "95.31%",
+  "api_details": {
+    "hasApiKey": true,
+    "cacheSize": 23,
+    "lastError": "Request timeout after 30000ms"
+  }
+}
+```
+
+## Response Fields
+
+### Server Health Indicators
+
+<ParamField path="server_healthy" type="boolean">
+  Overall server health status. Returns `true` if the MCP server is running and operational.
+  
+  **Interpretation:**
+  - `true` - Server is running and responding to requests
+  - `false` - Server has encountered critical errors
+</ParamField>
+
+<ParamField path="api_healthy" type="boolean">
+  API connectivity and configuration status. Returns `true` if the xAI API key is configured and API is accessible.
+  
+  **Interpretation:**
+  - `true` - API key is configured and API is accessible
+  - `false` - API key missing or API connectivity issues
+  
+  **Common Causes of `false`:**
+  - Missing `XAI_API_KEY` environment variable
+  - Invalid API key format
+  - Network connectivity issues
+</ParamField>
+
+### Performance Metrics
+
+<ParamField path="uptime_ms" type="number">
+  Server uptime in milliseconds since the last restart.
+  
+  **Example Values:**
+  - `60000` - 1 minute uptime
+  - `3600000` - 1 hour uptime
+  - `86400000` - 24 hours uptime
+</ParamField>
+
+<ParamField path="total_requests" type="number">
+  Total number of tool execution requests processed since server start.
+  
+  **Includes:** All tool calls (grok_search, grok_web_search, grok_news_search, grok_twitter, health_check)
+</ParamField>
+
+<ParamField path="error_count" type="number">
+  Total number of failed requests since server start.
+  
+  **Common Error Causes:**
+  - Invalid input parameters
+  - API rate limiting
+  - Network timeouts
+  - Malformed queries
+</ParamField>
+
+<ParamField path="success_rate" type="string">
+  Percentage of successful requests calculated as `((total_requests - error_count) / total_requests) * 100`.
+  
+  **Format:** Percentage string with two decimal places (e.g., "97.89%")
+  
+  **Interpretation:**
+  - `100%` - Perfect success rate
+  - `95%+` - Excellent performance
+  - `90-95%` - Good performance with some errors
+  - `<90%` - Investigation recommended
+  - `0%` - Critical issue (likely missing API key)
+</ParamField>
+
+### API Details
+
+<ParamField path="api_details.hasApiKey" type="boolean">
+  Indicates whether the `XAI_API_KEY` environment variable is configured.
+  
+  **Values:**
+  - `true` - API key is set
+  - `false` - API key is missing (configure in environment)
+</ParamField>
+
+<ParamField path="api_details.cacheSize" type="number">
+  Number of comprehensive analysis results currently cached in memory.
+  
+  **Cache Behavior:**
+  - Maximum size: 100 items
+  - TTL (Time To Live): 30 minutes
+  - Eviction policy: LRU (Least Recently Used)
+  - Only comprehensive analyses are cached
+  
+  **Typical Values:**
+  - `0` - No cached analyses (new server or no comprehensive searches)
+  - `1-50` - Normal cache usage
+  - `50-100` - Heavy cache usage
+  - `100` - Cache is full (oldest items will be evicted)
+</ParamField>
+
+<ParamField path="api_details.lastError" type="string | null">
+  The most recent error message encountered by the server, or `null` if no errors have occurred.
+  
+  **Common Error Messages:**
+  - `null` - No errors
+  - `"API service is not healthy - missing XAI_API_KEY"` - API key not configured
+  - `"Request timeout after 30000ms"` - Network or API timeout
+  - `"Search query must be a non-empty string"` - Input validation error
+  - `"API request failed: 429 - Rate limit exceeded"` - API rate limiting
+</ParamField>
+
+## Diagnostic Use Cases
+
+### 1. Initial Configuration Verification
+
+After installing and configuring the server, run `health_check` to verify setup:
+
+```json
+// Expected response for successful configuration:
+{
+  "server_healthy": true,
+  "api_healthy": true,
+  "api_details": {
+    "hasApiKey": true
+  }
+}
+```
+
+**If `api_healthy` is `false`:**
+1. Verify `XAI_API_KEY` is set in Claude Desktop configuration
+2. Check API key format (should start with "xai-")
+3. Restart Claude Desktop after configuration changes
+
+### 2. Performance Monitoring
+
+Regularly check health to monitor server performance:
+
+```json
+{
+  "success_rate": "95.31%",
+  "error_count": 12,
+  "total_requests": 256
+}
+```
+
+**Analysis:**
+- Success rate below 90% suggests recurring issues
+- High error count may indicate input validation problems or API issues
+- Monitor `lastError` for common error patterns
+
+### 3. Cache Performance
+
+Monitor cache utilization for comprehensive searches:
+
+```json
+{
+  "api_details": {
+    "cacheSize": 87
+  }
+}
+```
+
+**Analysis:**
+- Cache near full (100) indicates frequent comprehensive analyses
+- Empty cache (0) with comprehensive searches may indicate cache issues
+- Cache size helps predict performance (cached queries are instant)
+
+### 4. Troubleshooting Errors
+
+When experiencing issues, check `lastError` for diagnostics:
+
+```json
+{
+  "api_healthy": true,
+  "success_rate": "88.50%",
+  "api_details": {
+    "lastError": "Request timeout after 30000ms"
+  }
+}
+```
+
+**Common Issues and Solutions:**
+
+| Last Error | Cause | Solution |
+|------------|-------|----------|
+| `missing XAI_API_KEY` | API key not configured | Add `XAI_API_KEY` to environment variables |
+| `Request timeout` | Network or API slow | Increase `GROK_TIMEOUT` env variable (default: 30000ms) |
+| `Rate limit exceeded` | Too many API requests | Wait for rate limit reset, implement request throttling |
+| `Search query too long` | Input validation | Ensure queries are under 1000 characters |
+| `Invalid date format` | Parameter validation | Use ISO8601 format (YYYY-MM-DD) for dates |
+
+## Integration Examples
+
+### Automated Health Monitoring
+
+Periodically call `health_check` to monitor server health:
+
+```javascript
+async function monitorServerHealth() {
+  const response = await callTool("health_check", {});
+  const health = JSON.parse(response.content[0].text);
+  
+  if (!health.api_healthy) {
+    console.error("API health issue:", health.api_details.lastError);
+    return "unhealthy";
+  }
+  
+  const successRate = parseFloat(health.success_rate);
+  if (successRate < 90) {
+    console.warn(`Low success rate: ${health.success_rate}`);
+    return "degraded";
+  }
+  
+  return "healthy";
+}
+```
+
+### Pre-Request Validation
+
+Check server health before making search requests:
+
+```javascript
+async function performSearchWithHealthCheck(query) {
+  // Check health first
+  const healthResponse = await callTool("health_check", {});
+  const health = JSON.parse(healthResponse.content[0].text);
+  
+  if (!health.api_healthy) {
+    throw new Error(`Server not healthy: ${health.api_details.lastError}`);
+  }
+  
+  // Proceed with search
+  return await callTool("grok_search", { query });
+}
+```
+
+### Cache Performance Analysis
+
+```javascript
+async function analyzeCachePerformance() {
+  const response = await callTool("health_check", {});
+  const health = JSON.parse(response.content[0].text);
+  
+  const cacheUtilization = (health.api_details.cacheSize / 100) * 100;
+  
+  return {
+    cacheSize: health.api_details.cacheSize,
+    utilizationPercent: cacheUtilization,
+    recommendation: cacheUtilization > 80 
+      ? "Consider clearing cache or increasing size"
+      : "Cache utilization normal"
+  };
+}
+```
+
+## Health Status Interpretation
+
+### Optimal Health
+```json
+{
+  "server_healthy": true,
+  "api_healthy": true,
+  "success_rate": "98%+",
+  "api_details": {
+    "hasApiKey": true,
+    "lastError": null
+  }
+}
+```
+**Status:** Excellent - Server operating normally
+
+### Configuration Issue
+```json
+{
+  "server_healthy": true,
+  "api_healthy": false,
+  "success_rate": "0.00%",
+  "api_details": {
+    "hasApiKey": false,
+    "lastError": "missing XAI_API_KEY"
+  }
+}
+```
+**Status:** Critical - API key not configured
+**Action:** Set `XAI_API_KEY` environment variable
+
+### Degraded Performance
+```json
+{
+  "server_healthy": true,
+  "api_healthy": true,
+  "success_rate": "85.50%",
+  "api_details": {
+    "hasApiKey": true,
+    "lastError": "Request timeout"
+  }
+}
+```
+**Status:** Warning - Elevated error rate
+**Action:** Investigate timeout issues, check network connectivity
+
+## Usage Notes
+
+- **No Parameters Required**: Always call with empty arguments object
+- **Instant Response**: Health check executes immediately without API calls
+- **Does Not Count**: Health check calls do not increment the error_count
+- **Cache Visibility**: Shows current cache size for performance monitoring
+- **Error History**: Only shows most recent error, not full history
+- **Uptime Tracking**: Resets to 0 when server restarts
+- **Thread Safe**: Safe to call concurrently with other operations
+- **Best Practice**: Call health_check after initial configuration and when troubleshooting issues

@@ -1,0 +1,168 @@
+---
+title: Introduction
+description: Comprehensive web search and analysis powered by xAI's Grok API for MCP clients
+---
+
+## What is Grok Search MCP Server?
+
+Grok Search MCP Server is a powerful Model Context Protocol (MCP) server that brings xAI's Grok AI-powered search capabilities to your MCP-compatible applications like Claude Desktop. It enables sophisticated web searches with both basic results and comprehensive analysis modes.
+
+## Key features
+
+### Search capabilities
+
+<CardGroup cols={2}>
+  <Card title="Web search" icon="globe">
+    Search general web content including articles, blogs, and informational pages
+  </Card>
+  <Card title="News search" icon="newspaper">
+    Search for recent news and current events with timeline analysis
+  </Card>
+  <Card title="Twitter/X search" icon="twitter">
+    Search social media posts with sentiment analysis and influencer perspectives
+  </Card>
+  <Card title="Date filtering" icon="calendar">
+    Search within specific time periods using ISO8601 date ranges
+  </Card>
+</CardGroup>
+
+### Analysis modes
+
+<Tabs>
+  <Tab title="Basic mode">
+    Traditional search results with:
+    - Titles and snippets
+    - URLs and citations
+    - Source attribution
+    - Publication dates
+  </Tab>
+  <Tab title="Comprehensive mode">
+    Rich analysis including:
+    - Detailed timelines of events
+    - Direct quotes with attribution
+    - Multiple perspectives and viewpoints
+    - Historical context and implications
+    - Fact verification status
+    - Key findings categorization
+  </Tab>
+</Tabs>
+
+### Reliability features
+
+<CardGroup cols={2}>
+  <Card title="Retry logic" icon="rotate">
+    Automatic retry with exponential backoff for failed requests
+  </Card>
+  <Card title="Intelligent caching" icon="database">
+    30-minute TTL cache for comprehensive analyses to reduce API usage
+  </Card>
+  <Card title="Health monitoring" icon="heart-pulse">
+    Built-in diagnostics with performance metrics and success rates
+  </Card>
+  <Card title="Input validation" icon="shield-check">
+    Enhanced sanitization and validation of all inputs
+  </Card>
+</CardGroup>
+
+## Available tools
+
+The server provides five powerful tools:
+
+<AccordionGroup>
+  <Accordion title="grok_search" icon="magnifying-glass">
+    General-purpose search with configurable search types (web, news, general) and analysis modes. Supports date filtering and up to 20 results per query.
+  </Accordion>
+  
+  <Accordion title="grok_web_search" icon="globe">
+    Specialized web content search with comprehensive analysis support for detailed insights across articles and informational content.
+  </Accordion>
+  
+  <Accordion title="grok_news_search" icon="newspaper">
+    News-focused search providing timeline analysis, direct quotes, and multiple perspectives on current events.
+  </Accordion>
+  
+  <Accordion title="grok_twitter" icon="twitter">
+    Twitter/X post search with optional handle filtering, sentiment analysis, and social media trend detection.
+  </Accordion>
+  
+  <Accordion title="health_check" icon="stethoscope">
+    Server diagnostics including API connectivity status, uptime, request counts, and success rates.
+  </Accordion>
+</AccordionGroup>
+
+## Technical specifications
+
+<CodeGroup>
+```json System requirements
+{
+  "node_version": ">=18.0.0",
+  "protocol": "MCP 1.0",
+  "transport": "stdio",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.3"
+  }
+}
+```
+
+```json Configuration
+{
+  "environment_variables": {
+    "XAI_API_KEY": "Required: Your xAI API key",
+    "GROK_TIMEOUT": "Optional: Request timeout in ms (default: 30000)",
+    "GROK_MAX_RETRIES": "Optional: Max retry attempts (default: 3)"
+  }
+}
+```
+</CodeGroup>
+
+## How it works
+
+<Steps>
+  <Step title="Connect via MCP">
+    The server communicates using the Model Context Protocol over stdio, making it compatible with Claude Desktop and other MCP clients.
+  </Step>
+  
+  <Step title="Process search requests">
+    Your queries are processed through xAI's Grok API with intelligent prompt engineering for optimal results.
+  </Step>
+  
+  <Step title="Return structured data">
+    Results are returned as structured JSON with citations, metadata, and comprehensive analysis when requested.
+  </Step>
+</Steps>
+
+<Note>
+  The server uses Grok's native search capabilities, which include real-time web access and AI-powered result summarization.
+</Note>
+
+## Use cases
+
+<CardGroup cols={2}>
+  <Card title="Research assistance" icon="microscope">
+    Get comprehensive analysis on complex topics with timelines, quotes, and multiple perspectives
+  </Card>
+  <Card title="News monitoring" icon="rss">
+    Track breaking news and current events with date-filtered searches and timeline analysis
+  </Card>
+  <Card title="Social listening" icon="ear-listen">
+    Monitor Twitter/X for specific topics or from particular influencers
+  </Card>
+  <Card title="Fact checking" icon="circle-check">
+    Verify information with confirmation status, multiple sources, and contradiction detection
+  </Card>
+</CardGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Follow the step-by-step installation guide to get started
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Try your first search in minutes with our quickstart guide
+  </Card>
+</CardGroup>
+
+<Tip>
+  Start with basic mode to verify functionality, then explore comprehensive mode for detailed analysis needs.
+</Tip>

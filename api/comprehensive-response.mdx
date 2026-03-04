@@ -1,0 +1,462 @@
+---
+title: 'Comprehensive Response Format'
+description: 'Structure and fields returned by comprehensive mode searches'
+---
+
+## Overview
+
+The comprehensive response format is returned when `analysis_mode` is set to `"comprehensive"`. This mode provides in-depth analysis including key findings, timelines, multiple perspectives, quotes, and verification status in addition to raw search results.
+
+## Response Structure
+
+<ResponseField name="query" type="string" required>
+  The original search query that was executed
+</ResponseField>
+
+<ResponseField name="analysis_mode" type="string" required>
+  The analysis mode used for this search. Always `"comprehensive"` for comprehensive responses
+</ResponseField>
+
+<ResponseField name="comprehensive_analysis" type="string" required>
+  Detailed analysis of the search topic with context and implications (typically 500+ words)
+</ResponseField>
+
+<ResponseField name="key_findings" type="array" required>
+  Array of key finding objects representing the most important discoveries
+  
+  <Expandable title="Key Finding Object">
+    <ResponseField name="category" type="string" required>
+      The category of this finding. One of:
+      - `"main_story"` - Primary development or main narrative
+      - `"development"` - Secondary developments
+      - `"context"` - Background information
+      - `"impact"` - Consequences and effects
+    </ResponseField>
+    
+    <ResponseField name="title" type="string" required>
+      Concise title of the finding
+    </ResponseField>
+    
+    <ResponseField name="content" type="string" required>
+      Detailed explanation with specifics
+    </ResponseField>
+    
+    <ResponseField name="sources" type="array" required>
+      Array of source URLs supporting this finding
+    </ResponseField>
+    
+    <ResponseField name="confidence" type="string" required>
+      Confidence level of this finding. One of: `"high"`, `"medium"`, `"low"`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="timeline" type="array" required>
+  Chronological array of significant events related to the search topic
+  
+  <Expandable title="Timeline Event">
+    <ResponseField name="date" type="string" required>
+      Event date in `YYYY-MM-DD` format
+    </ResponseField>
+    
+    <ResponseField name="event" type="string" required>
+      Description of what occurred
+    </ResponseField>
+    
+    <ResponseField name="source" type="string" required>
+      The source reporting this event
+    </ResponseField>
+    
+    <ResponseField name="significance" type="string" required>
+      Explanation of why this event matters
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="direct_quotes" type="array" required>
+  Array of relevant quotes from authoritative sources
+  
+  <Expandable title="Quote Object">
+    <ResponseField name="quote" type="string" required>
+      The exact quote from the source
+    </ResponseField>
+    
+    <ResponseField name="speaker" type="string" required>
+      Name of the person who said or wrote the quote
+    </ResponseField>
+    
+    <ResponseField name="context" type="string" required>
+      When and where the quote was made (e.g., "During a press conference on Monday")
+    </ResponseField>
+    
+    <ResponseField name="source_url" type="string" required>
+      URL of the source containing the quote
+    </ResponseField>
+    
+    <ResponseField name="significance" type="string" required>
+      Why this quote is important to the analysis
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="related_context" type="string" required>
+  Historical background and contextual connections to help understand the topic
+</ResponseField>
+
+<ResponseField name="multiple_perspectives" type="array" required>
+  Array of different viewpoints on the topic
+  
+  <Expandable title="Perspective Object">
+    <ResponseField name="viewpoint" type="string" required>
+      Label for this perspective (e.g., "Supporters", "Critics", "Industry Experts")
+    </ResponseField>
+    
+    <ResponseField name="content" type="string" required>
+      Analysis from this perspective
+    </ResponseField>
+    
+    <ResponseField name="sources" type="array" required>
+      Array of source URLs representing this perspective
+    </ResponseField>
+    
+    <ResponseField name="reasoning" type="string" required>
+      Explanation of the logic behind this viewpoint
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="implications" type="object" required>
+  Analysis of consequences and impacts
+  
+  <Expandable title="Implications Object">
+    <ResponseField name="short_term" type="string" required>
+      Immediate consequences and near-term impacts
+    </ResponseField>
+    
+    <ResponseField name="long_term" type="string" required>
+      Potential long-term effects and lasting changes
+    </ResponseField>
+    
+    <ResponseField name="stakeholders_affected" type="array" required>
+      Array of groups, organizations, or entities impacted by this topic
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="verification_status" type="object" required>
+  Analysis of information reliability and verification
+  
+  <Expandable title="Verification Status Object">
+    <ResponseField name="confirmed_facts" type="array" required>
+      Array of verified information with multiple reliable sources
+    </ResponseField>
+    
+    <ResponseField name="unconfirmed_claims" type="array" required>
+      Array of claims that lack sufficient verification
+    </ResponseField>
+    
+    <ResponseField name="contradictory_information" type="array" required>
+      Array of conflicting reports or disputed information
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="raw_results" type="array" required>
+  Array of underlying search results used for the analysis
+  
+  <Expandable title="Raw Result Object">
+    <ResponseField name="title" type="string" required>
+      The title of the source article or page
+    </ResponseField>
+    
+    <ResponseField name="snippet" type="string" required>
+      Brief description or excerpt
+    </ResponseField>
+    
+    <ResponseField name="url" type="string" required>
+      The URL of the source
+    </ResponseField>
+    
+    <ResponseField name="relevance_score" type="number">
+      Relevance rating on a 1-10 scale (higher is more relevant)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="summary" type="string" required>
+  Executive summary of the entire analysis
+</ResponseField>
+
+<ResponseField name="total_results" type="number" required>
+  The total number of raw results analyzed
+</ResponseField>
+
+<ResponseField name="search_time" type="string" required>
+  ISO8601 timestamp of when the search was completed
+</ResponseField>
+
+<ResponseField name="source" type="string" required>
+  The source identifier for this response. Always `"grok-comprehensive-analysis"` for successful comprehensive mode searches.
+</ResponseField>
+
+<ResponseField name="citations" type="array" required>
+  Array of citation URLs referenced throughout the analysis
+</ResponseField>
+
+<ResponseField name="citation_metadata" type="array" required>
+  Array of citation metadata objects. See [Basic Response Format](/api/basic-response#response-structure) for citation metadata structure.
+</ResponseField>
+
+## Example Response
+
+```json
+{
+  "query": "climate change policy 2025",
+  "analysis_mode": "comprehensive",
+  "comprehensive_analysis": "The global landscape of climate change policy in 2025 reflects a critical juncture in international efforts to address environmental challenges. Following the 2024 climate summit, nations have begun implementing more aggressive carbon reduction targets, with several major economies committing to net-zero emissions by 2040. The policy framework emphasizes both mitigation and adaptation strategies, recognizing the dual need to reduce emissions while preparing for inevitable climate impacts. Key developments include carbon pricing mechanisms adopted by 75% of G20 nations, expanded renewable energy subsidies, and stricter emissions standards for industrial sectors. However, implementation challenges remain, particularly in balancing economic growth with environmental protection in developing nations.",
+  "key_findings": [
+    {
+      "category": "main_story",
+      "title": "Accelerated Net-Zero Commitments",
+      "content": "Major economies including the EU, Japan, and Canada have moved their net-zero targets forward from 2050 to 2040, representing a significant acceleration in climate ambition.",
+      "sources": [
+        "https://climate-policy.org/2025-commitments",
+        "https://news.example.com/net-zero-2040"
+      ],
+      "confidence": "high"
+    },
+    {
+      "category": "development",
+      "title": "Carbon Pricing Expansion",
+      "content": "75% of G20 nations have now implemented carbon pricing mechanisms, up from 45% in 2023, creating a more unified approach to emissions reduction.",
+      "sources": [
+        "https://carbon-pricing.org/global-report"
+      ],
+      "confidence": "high"
+    },
+    {
+      "category": "context",
+      "title": "Historical Policy Evolution",
+      "content": "These 2025 policies build on decades of international climate negotiations, from the 1992 Rio Summit through the Paris Agreement to present day commitments.",
+      "sources": [
+        "https://climate-history.edu/timeline"
+      ],
+      "confidence": "high"
+    },
+    {
+      "category": "impact",
+      "title": "Economic Transition Effects",
+      "content": "The policy shifts are driving $2 trillion in annual green infrastructure investment globally, creating both opportunities and disruption across industries.",
+      "sources": [
+        "https://economic-analysis.org/green-transition"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "timeline": [
+    {
+      "date": "2024-11-15",
+      "event": "International Climate Summit concludes with renewed commitments",
+      "source": "UN Climate News",
+      "significance": "This marked the beginning of accelerated policy implementation that defined 2025 climate action"
+    },
+    {
+      "date": "2025-01-01",
+      "event": "EU implements comprehensive carbon border adjustment mechanism",
+      "source": "European Commission",
+      "significance": "First major economy to fully operationalize carbon border taxes, setting precedent for global trade"
+    },
+    {
+      "date": "2025-03-10",
+      "event": "G20 announces coordinated carbon pricing framework",
+      "source": "G20 Climate Working Group",
+      "significance": "Represents unprecedented international coordination on climate policy implementation"
+    }
+  ],
+  "direct_quotes": [
+    {
+      "quote": "The accelerated timeline to 2040 is ambitious but necessary given the urgency of the climate crisis",
+      "speaker": "Dr. Maria Santos",
+      "context": "During EU Climate Policy announcement, January 2025",
+      "source_url": "https://eu-climate.org/announcement",
+      "significance": "This statement reflects the shift in official policy discourse from aspirational to urgent action"
+    },
+    {
+      "quote": "Carbon pricing is no longer a choice but an economic necessity for sustainable growth",
+      "speaker": "Finance Minister James Chen",
+      "context": "G20 Finance Ministers Meeting, March 2025",
+      "source_url": "https://g20.org/finance-meeting",
+      "significance": "Indicates mainstream acceptance of carbon pricing among economic policymakers"
+    }
+  ],
+  "related_context": "Climate change policy in 2025 exists within a broader context of global environmental governance that has evolved over three decades. The current policies represent a maturation of approaches that began with the 1992 United Nations Framework Convention on Climate Change, progressed through the Kyoto Protocol, and were refined in the 2015 Paris Agreement. The 2025 landscape also reflects lessons learned from previous implementation challenges, including the importance of just transition mechanisms, the need for developed nation climate finance commitments, and the recognition that climate policy must be integrated with broader sustainable development goals.",
+  "multiple_perspectives": [
+    {
+      "viewpoint": "Environmental Advocates",
+      "content": "While welcoming the accelerated timelines, environmental groups argue the policies still fall short of what climate science demands, calling for even more aggressive action and immediate fossil fuel phaseout.",
+      "sources": [
+        "https://environmental-coalition.org/2025-assessment"
+      ],
+      "reasoning": "This perspective prioritizes climate science findings suggesting current trajectories still lead to dangerous warming levels"
+    },
+    {
+      "viewpoint": "Industry Representatives",
+      "content": "Business leaders express concerns about implementation timelines and economic competitiveness, while acknowledging the need for climate action. Many are calling for more transition support and clearer regulatory frameworks.",
+      "sources": [
+        "https://business-roundtable.org/climate-response"
+      ],
+      "reasoning": "Industrial perspective emphasizes practical implementation challenges and economic transition costs"
+    },
+    {
+      "viewpoint": "Developing Nations",
+      "content": "Representatives from developing economies stress the need for climate justice, demanding that wealthy nations provide promised climate finance and technology transfer while allowing development space.",
+      "sources": [
+        "https://developing-nations-climate.org/statement"
+      ],
+      "reasoning": "This viewpoint highlights equity concerns and the principle of common but differentiated responsibilities"
+    }
+  ],
+  "implications": {
+    "short_term": "Immediate consequences include increased investment in renewable energy infrastructure, higher costs for carbon-intensive industries, accelerated electric vehicle adoption, and shifts in international trade patterns due to carbon border adjustments. Near-term economic disruption in fossil fuel sectors will require just transition programs and workforce retraining initiatives.",
+    "long_term": "Potential long-term impacts include fundamental transformation of global energy systems, emergence of new green industries and job markets, reduced climate-related disaster costs, improved public health outcomes from reduced air pollution, and possible geopolitical realignment around clean energy resources rather than fossil fuels. Success could keep warming below 2°C, while failure could lock in catastrophic climate impacts.",
+    "stakeholders_affected": [
+      "Fossil fuel industry workers and communities",
+      "Renewable energy sector",
+      "Manufacturing and heavy industry",
+      "Agricultural producers",
+      "Coastal communities vulnerable to sea-level rise",
+      "Developing nations",
+      "Future generations",
+      "Financial sector and investors",
+      "Utility companies",
+      "Transportation sector"
+    ]
+  },
+  "verification_status": {
+    "confirmed_facts": [
+      "G20 carbon pricing adoption rate reached 75% in 2025",
+      "EU carbon border adjustment mechanism operational as of January 1, 2025",
+      "Multiple major economies moved net-zero targets to 2040"
+    ],
+    "unconfirmed_claims": [
+      "$2 trillion annual green infrastructure investment figure lacks independent verification",
+      "Some nation-specific implementation timeline details remain preliminary"
+    ],
+    "contradictory_information": [
+      "Conflicting reports on whether certain developing nations will meet their updated NDC commitments",
+      "Disputed effectiveness projections for carbon border adjustment mechanisms"
+    ]
+  },
+  "raw_results": [
+    {
+      "title": "G20 Accelerates Climate Commitments",
+      "snippet": "Major economies announce coordinated approach to carbon pricing and net-zero timelines",
+      "url": "https://climate-policy.org/2025-commitments",
+      "relevance_score": 9
+    },
+    {
+      "title": "EU Launches Carbon Border Mechanism",
+      "snippet": "European Union implements comprehensive carbon tariffs on imports",
+      "url": "https://eu-climate.org/border-mechanism",
+      "relevance_score": 8
+    },
+    {
+      "title": "Climate Policy Economic Analysis",
+      "snippet": "New report examines economic implications of accelerated climate targets",
+      "url": "https://economic-analysis.org/green-transition",
+      "relevance_score": 7
+    }
+  ],
+  "summary": "Climate change policy in 2025 represents a significant acceleration in global climate action, with major economies moving net-zero targets to 2040 and implementing carbon pricing mechanisms. While environmental advocates seek faster action and industry voices concerns about implementation, the policies signal a fundamental shift toward urgent climate response. Key developments include coordinated carbon pricing, border adjustment mechanisms, and increased green infrastructure investment, with implications spanning economic transformation, geopolitical realignment, and the potential to limit warming to safer levels.",
+  "total_results": 3,
+  "search_time": "2025-06-24T12:00:00.000Z",
+  "source": "grok-comprehensive-analysis",
+  "citations": [
+    "https://climate-policy.org/2025-commitments",
+    "https://news.example.com/net-zero-2040",
+    "https://carbon-pricing.org/global-report",
+    "https://climate-history.edu/timeline",
+    "https://economic-analysis.org/green-transition",
+    "https://eu-climate.org/announcement",
+    "https://g20.org/finance-meeting",
+    "https://environmental-coalition.org/2025-assessment",
+    "https://business-roundtable.org/climate-response",
+    "https://developing-nations-climate.org/statement"
+  ],
+  "citation_metadata": [
+    {
+      "index": 0,
+      "url": "https://climate-policy.org/2025-commitments",
+      "domain": "climate-policy.org",
+      "protocol": "https:",
+      "is_secure": true,
+      "path": "/2025-commitments"
+    }
+  ]
+}
+```
+
+## Fallback Response
+
+When comprehensive analysis parsing fails, a fallback response is generated:
+
+```json
+{
+  "query": "search query",
+  "analysis_mode": "comprehensive",
+  "comprehensive_analysis": "Raw analysis content from Grok response...",
+  "key_findings": [],
+  "timeline": [],
+  "direct_quotes": [],
+  "related_context": "Analysis could not be properly extracted from the response",
+  "multiple_perspectives": [],
+  "implications": {},
+  "verification_status": {
+    "confirmed_facts": [],
+    "unconfirmed_claims": [],
+    "contradictory_information": []
+  },
+  "raw_results": [
+    {
+      "title": "Search results for: search query",
+      "snippet": "Raw response content (truncated to 500 characters)...",
+      "url": "https://first-citation.com",
+      "source": "grok-live-search",
+      "published_date": "2025-06-24",
+      "citation_url": "https://first-citation.com",
+      "citation_index": 0,
+      "citation_metadata": {
+        "index": 0,
+        "url": "https://first-citation.com",
+        "domain": "first-citation.com",
+        "protocol": "https:",
+        "is_secure": true,
+        "path": "/"
+      }
+    }
+  ],
+  "summary": "Raw search results from Grok (comprehensive analysis parsing failed)",
+  "total_results": 1,
+  "search_time": "2025-06-24T12:00:00.000Z",
+  "source": "grok-comprehensive-analysis-fallback",
+  "citations": ["https://first-citation.com"],
+  "citation_metadata": [
+    {
+      "index": 0,
+      "url": "https://first-citation.com",
+      "domain": "first-citation.com",
+      "protocol": "https:",
+      "is_secure": true,
+      "path": "/"
+    }
+  ]
+}
+```
+
+## Notes
+
+- Comprehensive analysis responses are cached for 30 minutes to improve performance
+- All dates and timestamps use ISO8601 format
+- The `comprehensive_analysis` field typically contains 500+ words of detailed analysis
+- Empty arrays are returned for structured fields when analysis extraction fails
+- The `source` field distinguishes between successful analyses (`"grok-comprehensive-analysis"`) and fallback responses (`"grok-comprehensive-analysis-fallback"`)

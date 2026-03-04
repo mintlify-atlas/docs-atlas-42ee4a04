@@ -1,0 +1,392 @@
+---
+title: grok_news_search
+description: Search for recent news using Grok with timeline analysis, direct quotes, and multiple perspectives
+---
+
+## Overview
+
+The `grok_news_search` tool provides specialized search capabilities for news and current events. In comprehensive mode, it offers timeline analysis, direct quotes from sources, and multiple perspectives on news events.
+
+## Parameters
+
+<ParamField path="query" type="string" required>
+  The news search query. Must be a non-empty string with a maximum length of 1000 characters.
+</ParamField>
+
+<ParamField path="analysis_mode" type="string" default="basic">
+  Analysis depth and format. Must be one of:
+  - `basic` - Returns simple news results with titles, snippets, and URLs
+  - `comprehensive` - Provides detailed analysis with timelines, direct quotes from sources, multiple perspectives, and verification status
+  
+  **Default:** `basic`
+  
+  **Note:** Comprehensive mode is particularly powerful for news, providing timeline analysis and perspective comparison.
+</ParamField>
+
+<ParamField path="max_results" type="number" default={10}>
+  Maximum number of news results to return.
+  
+  **Constraints:**
+  - Minimum: 1
+  - Maximum: 20
+  - Default: 10
+</ParamField>
+
+<ParamField path="from_date" type="string">
+  Optional start date for search in ISO8601 format (YYYY-MM-DD). Limits search to content from this date onwards.
+  
+  **Validation:**
+  - Must match pattern: `^\d{4}-\d{2}-\d{2}$`
+  - Must be a valid calendar date
+  - Must be before or equal to `to_date` if both are provided
+  
+  **Example:** `2025-01-01`
+  
+  **Note:** Especially useful for news to filter by time period.
+</ParamField>
+
+<ParamField path="to_date" type="string">
+  Optional end date for search in ISO8601 format (YYYY-MM-DD). Limits search to content up to this date.
+  
+  **Validation:**
+  - Must match pattern: `^\d{4}-\d{2}-\d{2}$`
+  - Must be a valid calendar date
+  - Must be after or equal to `from_date` if both are provided
+  
+  **Example:** `2025-12-31`
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```json Basic News Search
+{
+  "name": "grok_news_search",
+  "arguments": {
+    "query": "artificial intelligence breakthrough",
+    "max_results": 5
+  }
+}
+```
+
+```json Recent News with Date Range
+{
+  "name": "grok_news_search",
+  "arguments": {
+    "query": "climate change policy developments",
+    "max_results": 10,
+    "from_date": "2025-01-01",
+    "to_date": "2025-03-31"
+  }
+}
+```
+
+```json Comprehensive News Analysis
+{
+  "name": "grok_news_search",
+  "arguments": {
+    "query": "climate change policy developments 2025",
+    "analysis_mode": "comprehensive",
+    "max_results": 10,
+    "from_date": "2025-01-01"
+  }
+}
+```
+
+</CodeGroup>
+
+## Response Format
+
+### Basic Mode Response
+
+```json
+{
+  "query": "artificial intelligence breakthrough",
+  "analysis_mode": "basic",
+  "results": [
+    {
+      "title": "Major AI Research Breakthrough Announced",
+      "snippet": "Scientists at leading research institution have announced a significant breakthrough in artificial intelligence that could revolutionize...",
+      "url": "https://news-source.com/ai-breakthrough-2025",
+      "source": "Tech News Daily",
+      "published_date": "2025-03-01",
+      "author": "Sarah Johnson",
+      "citation_url": "https://news-source.com/ai-breakthrough-2025",
+      "citation_index": 0,
+      "citation_metadata": {
+        "index": 0,
+        "url": "https://news-source.com/ai-breakthrough-2025",
+        "domain": "news-source.com",
+        "protocol": "https",
+        "is_secure": true,
+        "path": "/ai-breakthrough-2025"
+      }
+    },
+    {
+      "title": "AI Industry Reacts to Latest Research",
+      "snippet": "Industry leaders are responding to yesterday's announcement with a mix of excitement and caution...",
+      "url": "https://business-news.com/ai-industry-reaction",
+      "source": "Business News Network",
+      "published_date": "2025-03-02"
+    }
+  ],
+  "citations": [
+    "https://news-source.com/ai-breakthrough-2025",
+    "https://business-news.com/ai-industry-reaction"
+  ],
+  "citation_metadata": [
+    {
+      "index": 0,
+      "url": "https://news-source.com/ai-breakthrough-2025",
+      "domain": "news-source.com",
+      "protocol": "https",
+      "is_secure": true,
+      "path": "/ai-breakthrough-2025"
+    }
+  ],
+  "summary": "Recent news coverage of artificial intelligence breakthroughs shows significant progress in the field with mixed industry reactions.",
+  "total_results": 5,
+  "search_time": "2025-03-04T12:00:00Z",
+  "source": "grok-live-search"
+}
+```
+
+### Comprehensive Mode Response
+
+```json
+{
+  "query": "climate change policy developments 2025",
+  "analysis_mode": "comprehensive",
+  "comprehensive_analysis": "The climate change policy landscape in 2025 has been marked by significant developments across multiple regions. In January, the European Union announced an ambitious new carbon reduction framework that sets binding targets for member states through 2035. This represents a substantial acceleration of previous commitments and includes specific mechanisms for enforcement and monitoring. The United States has simultaneously introduced bipartisan legislation focused on clean energy infrastructure, marking a rare moment of cross-party cooperation on environmental policy. Meanwhile, developing nations have formed a new coalition demanding increased climate financing from developed countries, arguing that historical emissions create moral and practical obligations for support. These parallel developments suggest a global shift toward more coordinated and aggressive climate action, though significant challenges remain in implementation and enforcement. The private sector has responded with substantial commitments, with Fortune 500 companies announcing collective investments exceeding $500 billion in green technologies over the next decade...",
+  "key_findings": [
+    {
+      "category": "main_story",
+      "title": "EU Announces Binding Carbon Reduction Framework",
+      "content": "The European Union unveiled comprehensive carbon reduction targets with legally binding mechanisms for member states. The framework includes quarterly monitoring, financial penalties for non-compliance, and support mechanisms for transitioning industries. Target: 65% reduction by 2035 compared to 1990 levels.",
+      "sources": [
+        "https://eu-climate.eu/policy-announcement",
+        "https://news-europe.com/carbon-framework"
+      ],
+      "confidence": "high"
+    },
+    {
+      "category": "development",
+      "title": "US Bipartisan Climate Infrastructure Bill",
+      "content": "Rare bipartisan legislation passed with $300 billion allocation for clean energy infrastructure over 5 years. Includes provisions for grid modernization, renewable energy deployment, and job training programs.",
+      "sources": [
+        "https://congress.gov/climate-bill-2025"
+      ],
+      "confidence": "high"
+    },
+    {
+      "category": "context",
+      "title": "Developing Nations Coalition Formed",
+      "content": "45 developing nations formed the Climate Justice Alliance demanding $200 billion annually in climate financing from developed countries, citing historical emissions responsibility.",
+      "sources": [
+        "https://climate-justice.org/announcement"
+      ],
+      "confidence": "high"
+    },
+    {
+      "category": "impact",
+      "title": "Corporate Sector Announces Major Investments",
+      "content": "Fortune 500 companies collectively pledged over $500 billion in green technology investments through 2035, with detailed implementation roadmaps.",
+      "sources": [
+        "https://business-climate.com/corporate-commitments"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "timeline": [
+    {
+      "date": "2025-01-15",
+      "event": "EU Climate Framework Announced",
+      "source": "European Commission",
+      "significance": "First legally binding carbon framework with enforcement mechanisms"
+    },
+    {
+      "date": "2025-02-01",
+      "event": "US Climate Infrastructure Bill Passed",
+      "source": "US Congress",
+      "significance": "Largest bipartisan climate investment in US history"
+    },
+    {
+      "date": "2025-02-15",
+      "event": "Climate Justice Alliance Formation",
+      "source": "International Climate Summit",
+      "significance": "Developing nations unified position on climate financing"
+    },
+    {
+      "date": "2025-03-01",
+      "event": "Corporate Climate Commitments",
+      "source": "Global Business Climate Forum",
+      "significance": "Private sector mobilization at unprecedented scale"
+    }
+  ],
+  "direct_quotes": [
+    {
+      "quote": "This framework represents the most ambitious climate policy in European history, with real teeth for enforcement",
+      "speaker": "Ursula von der Leyen, European Commission President",
+      "context": "Announcement of EU Carbon Reduction Framework",
+      "source_url": "https://eu-climate.eu/policy-announcement",
+      "significance": "Signals EU commitment to aggressive climate action with accountability"
+    },
+    {
+      "quote": "Climate change doesn't respect party lines, and neither should our response to it",
+      "speaker": "Senator John Smith, US Senate Climate Committee",
+      "context": "Passage of bipartisan climate infrastructure bill",
+      "source_url": "https://congress.gov/climate-bill-2025",
+      "significance": "Indicates rare political consensus on climate action in US"
+    },
+    {
+      "quote": "Developed nations built their prosperity on carbon emissions. Climate justice demands they support our transition",
+      "speaker": "Minister Maria Santos, Climate Justice Alliance Spokesperson",
+      "context": "Formation of developing nations coalition",
+      "source_url": "https://climate-justice.org/announcement",
+      "significance": "Frames climate financing as moral obligation, not charity"
+    }
+  ],
+  "related_context": "These 2025 developments build on the 2023 Global Climate Accord and the 2024 Paris Agreement Enhancements. Historical context shows increasing urgency as climate impacts accelerate, with 2024 recording the highest global average temperature on record. Economic modeling suggests these policies could create 10 million green jobs globally while reducing emissions by 40% by 2035.",
+  "multiple_perspectives": [
+    {
+      "viewpoint": "Environmental Advocacy Groups",
+      "content": "Environmental organizations praise the ambition of new policies but express concern about implementation timelines and enforcement gaps. They argue current targets, while aggressive, still fall short of what climate science demands.",
+      "sources": [
+        "https://greenpeace.org/climate-policy-analysis",
+        "https://sierra-club.org/2025-review"
+      ],
+      "reasoning": "Based on scientific assessments and historical policy implementation challenges"
+    },
+    {
+      "viewpoint": "Energy Industry",
+      "content": "Traditional energy sectors acknowledge need for transition but request longer timelines and greater support for workforce retraining. Renewable energy companies welcome policies as opportunity for growth and innovation.",
+      "sources": [
+        "https://energy-industry.com/transition-challenges"
+      ],
+      "reasoning": "Reflects economic interests and practical implementation concerns"
+    },
+    {
+      "viewpoint": "Economic Analysts",
+      "content": "Economists project mixed short-term impacts with potential GDP slowdown in carbon-intensive sectors, but strong long-term economic benefits through green job creation and technological innovation. Models suggest 3% GDP growth from clean energy by 2035.",
+      "sources": [
+        "https://economic-forum.com/climate-policy-modeling"
+      ],
+      "reasoning": "Based on economic modeling and historical transition data"
+    },
+    {
+      "viewpoint": "Climate Scientists",
+      "content": "Climate researchers welcome policy momentum but warn current commitments still insufficient to limit warming to 1.5°C. They emphasize need for even more aggressive action and immediate implementation.",
+      "sources": [
+        "https://climate-science.org/policy-assessment"
+      ],
+      "reasoning": "Based on IPCC projections and climate modeling"
+    }
+  ],
+  "implications": {
+    "short_term": "Immediate economic impacts include increased costs for carbon-intensive industries, accelerated clean energy investment, and job market shifts. Policy implementation begins Q2 2025 with first compliance deadlines in Q4 2025.",
+    "long_term": "Potential transformation of global energy systems by 2035, with estimated 40% emissions reduction globally. Creates framework for further policy acceleration if initial targets are met. Could establish new international norms for climate action.",
+    "stakeholders_affected": [
+      "Traditional energy sector workers requiring retraining",
+      "Clean energy companies seeing expansion opportunities",
+      "Developing nations requiring climate financing",
+      "Taxpayers funding infrastructure investments",
+      "Future generations benefiting from emissions reductions",
+      "Coastal communities vulnerable to climate impacts"
+    ]
+  },
+  "verification_status": {
+    "confirmed_facts": [
+      "EU Carbon Reduction Framework announced January 15, 2025",
+      "US bipartisan climate bill passed with $300B allocation",
+      "Climate Justice Alliance formed by 45 nations",
+      "Corporate commitments exceed $500B total",
+      "EU target: 65% reduction by 2035 vs 1990 levels"
+    ],
+    "unconfirmed_claims": [
+      "Exact timeline for private sector investment deployment",
+      "Specific enforcement mechanisms for EU framework pending final regulations",
+      "Climate Justice Alliance financing demand of $200B annually (stated goal, not committed by donors)"
+    ],
+    "contradictory_information": [
+      "Some sources report US bill at $280B vs $300B - discrepancy may reflect different accounting methods",
+      "Number of developing nations in coalition varies between 43-45 in different sources"
+    ]
+  },
+  "raw_results": [
+    {
+      "title": "EU Unveils Ambitious Carbon Framework",
+      "snippet": "European Union announces binding carbon reduction targets...",
+      "url": "https://eu-climate.eu/policy-announcement",
+      "relevance_score": 9.8
+    },
+    {
+      "title": "US Passes Historic Climate Bill",
+      "snippet": "Bipartisan legislation allocates $300 billion for clean energy...",
+      "url": "https://congress.gov/climate-bill-2025",
+      "relevance_score": 9.5
+    }
+  ],
+  "results": [],
+  "citations": [
+    "https://eu-climate.eu/policy-announcement",
+    "https://congress.gov/climate-bill-2025",
+    "https://climate-justice.org/announcement"
+  ],
+  "citation_metadata": [],
+  "summary": "Major climate policy developments in 2025 include EU binding carbon framework, US bipartisan infrastructure investment, developing nations coalition, and unprecedented corporate commitments.",
+  "total_results": 10,
+  "search_time": "2025-03-04T12:00:00Z",
+  "source": "grok-comprehensive-analysis"
+}
+```
+
+## Error Response
+
+```json
+{
+  "error": "from_date must be before or equal to to_date",
+  "status": "failed",
+  "query": "climate policy",
+  "search_type": "news",
+  "analysis_mode": "basic",
+  "timestamp": "2025-03-04T12:00:00Z",
+  "request_id": "req_1709560800000_def456",
+  "from_date": "2025-12-31",
+  "to_date": "2025-01-01"
+}
+```
+
+## Common Error Messages
+
+- `Search query must be a non-empty string` - Query parameter is missing or empty
+- `Search query too long (max 1000 characters)` - Query exceeds maximum length
+- `from_date must be in ISO8601 format (YYYY-MM-DD)` - Invalid date format
+- `from_date is not a valid date` - Invalid calendar date (e.g., 2025-02-30)
+- `from_date must be before or equal to to_date` - Invalid date range
+- `API service is not healthy - missing XAI_API_KEY` - API key not configured
+
+## Usage Notes
+
+- **Content Focus**: Optimized for news articles and current events
+- **Recency**: Prioritizes the most recent information
+- **Date Filtering**: Particularly useful for news to narrow time periods
+- **Timeline Analysis**: Comprehensive mode provides chronological event analysis
+- **Verification**: Comprehensive mode includes fact verification status
+- **Perspectives**: Multiple viewpoints on news events in comprehensive mode
+- **Performance**: Basic mode provides faster responses than comprehensive mode
+- **Caching**: Comprehensive analyses are cached for 30 minutes
+- **Token Usage**: Basic mode uses ~2000 tokens, comprehensive mode uses ~4000 tokens
+- **Best For**: Breaking news, current events, policy developments, and trending topics
+
+## When to Use Comprehensive Mode
+
+Comprehensive mode is particularly valuable for news when you need:
+- Timeline of events showing how a story developed
+- Direct quotes from key figures and sources
+- Multiple perspectives on controversial topics
+- Verification status of claims and facts
+- Deep analysis of implications and stakeholders
+- Context and background information
+
+For quick news updates or simple fact-checking, basic mode is more efficient.

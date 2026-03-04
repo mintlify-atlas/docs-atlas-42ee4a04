@@ -1,0 +1,611 @@
+---
+title: Error Handling
+description: Error handling, retry logic, and troubleshooting guide
+---
+
+## Error Response Format
+
+All errors follow a consistent JSON format:
+
+```json
+{
+  "error": "Error message describing what went wrong",
+  "status": "failed",
+  "query": "original search query",
+  "search_type": "web",
+  "analysis_mode": "basic",
+  "from_date": null,
+  "to_date": null,
+  "timestamp": "2025-06-04T10:30:00.000Z",
+  "request_id": "req_1717498200000_abc123xyz"
+}
+```
+
+## Error Categories
+
+### API Key Errors
+
+#### Missing API Key
+
+**Cause**: `XAI_API_KEY` environment variable not set
+
+**Error**:
+```json
+{
+  "error": "API service is not healthy - missing XAI_API_KEY",
+  "status": "failed"
+}
+```
+
+**Implementation**:
+```javascript index.js:107-110
+if (!this.apiKey) {
+  this.isHealthy = false;
+  Logger.error("XAI_API_KEY environment variable is required");
+}
+```
+
+**Resolution**:
+1. Add `XAI_API_KEY` to Claude Desktop configuration
+2. Verify the API key format (starts with `xai-`)
+3. Restart Claude Desktop
+4. Run `health_check` to verify
+
+### Validation Errors
+
+#### Empty Query
+
+**Error**:
+```json
+{
+  "error": "Search query must be a non-empty string"
+}
+```
+
+**Validation**:
+```javascript index.js:196-198
+if (!query || typeof query !== 'string') {
+  throw new Error("Search query must be a non-empty string");
+}
+```
+
+#### Query Too Long
+
+**Error**:
+```json
+{
+  "error": "Search query too long (max 1000 characters)"
+}
+```
+
+**Validation**:
+```javascript index.js:205-207
+if (sanitizedQuery.length > 1000) {
+  throw new Error("Search query too long (max 1000 characters)");
+}
+```
+
+#### Invalid Date Format
+
+**Error**:
+```json
+{
+  "error": "from_date must be in ISO8601 format (YYYY-MM-DD)"
+}
+```
+
+**Validation**:
+```javascript index.js:16-19
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+if (!dateRegex.test(dateString)) {
+  throw new Error(`${paramName} must be in ISO8601 format (YYYY-MM-DD)`);
+}
+```
+
+#### Invalid Date Range
+
+**Error**:
+```json
+{
+  "error": "from_date must be before or equal to to_date"
+}
+```
+
+**Validation**:
+```javascript index.js:224-228
+const fromDateObj = new Date(validatedFromDate);
+const toDateObj = new Date(validatedToDate);
+if (fromDateObj > toDateObj) {
+  throw new Error("from_date must be before or equal to to_date");
+}
+```
+
+### API Request Errors
+
+#### Rate Limiting (429)
+
+**Error**:
+```json
+{
+  "error": "API request failed: 429 - Rate limit exceeded"
+}
+```
+
+**Automatic Retry**: Yes (with exponential backoff)
+
+**Retry Logic**:
+```javascript index.js:152-162
+if ((response.status >= 500 || response.status === 429) && retryCount < this.maxRetries) {
+  const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);
+  Logger.warn(`Request failed, retrying in ${backoffDelay}ms`, { 
+    status: response.status, 
+    attempt: retryCount + 1,
+    maxRetries: this.maxRetries 
+  });
+  
+  await new Promise(resolve => setTimeout(resolve, backoffDelay));
+  return this.makeRequest(endpoint, data, retryCount + 1);
+}
+```
+
+**Backoff Schedule**:
+- Attempt 1: Wait 1 second (2^0 * 1000ms)
+- Attempt 2: Wait 2 seconds (2^1 * 1000ms)
+- Attempt 3: Wait 4 seconds (2^2 * 1000ms)
+- Attempt 4: Wait 8 seconds (2^3 * 1000ms)
+- Maximum: 10 seconds cap
+
+<Tip>
+The server automatically handles rate limiting. You don't need to implement retry logic in your application.
+</Tip>
+
+#### Server Errors (5xx)
+
+**Error**:
+```json
+{
+  "error": "API request failed: 500 - Internal Server Error"
+}
+```
+
+**Automatic Retry**: Yes (same logic as rate limiting)
+
+**Max Retries**: Configured by `GROK_MAX_RETRIES` (default: 3)
+
+#### Timeout Errors
+
+**Error**:
+```json
+{
+  "error": "Request timeout after 30000ms"
+}
+```
+
+**Implementation**:
+```javascript index.js:131-132,171-175
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
+
+if (error.name === 'AbortError') {
+  const timeoutError = new Error(`Request timeout after ${this.requestTimeout}ms`);
+  this.lastError = timeoutError.message;
+  throw timeoutError;
+}
+```
+
+**Resolution**:
+1. Increase `GROK_TIMEOUT` in configuration
+2. Use basic mode instead of comprehensive
+3. Reduce `max_results` parameter
+4. Check network connectivity
+
+<Note>
+Comprehensive analyses typically take 20-40 seconds. Set `GROK_TIMEOUT` to 45000-60000ms for comprehensive mode.
+</Note>
+
+#### Network Errors
+
+**Error**:
+```json
+{
+  "error": "Failed to make API request: Network connection failed"
+}
+```
+
+**Automatic Retry**: Yes (for non-API errors)
+
+**Retry Logic**:
+```javascript index.js:178-187
+if (retryCount < this.maxRetries && !error.message.includes('API request failed:')) {
+  const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);
+  Logger.warn(`Network error, retrying in ${backoffDelay}ms`, { 
+    error: error.message, 
+    attempt: retryCount + 1 
+  });
+  
+  await new Promise(resolve => setTimeout(resolve, backoffDelay));
+  return this.makeRequest(endpoint, data, retryCount + 1);
+}
+```
+
+### Parsing Errors
+
+#### JSON Parsing Failed
+
+**Error**:
+```json
+{
+  "error": "Failed to parse search results: Unexpected token in JSON"
+}
+```
+
+**Fallback Behavior**: Returns fallback response with raw content
+
+**Fallback Response**:
+```javascript index.js:557-605
+createFallbackResponse(query, content, citations, citationMetadata, analysisMode) {
+  const fallbackResults = [{
+    title: `Search results for: ${query}`,
+    snippet: content.substring(0, 500) + (content.length > 500 ? "..." : ""),
+    url: citations[0] || null,
+    source: "grok-live-search",
+    published_date: new Date().toISOString().split('T')[0]
+  }];
+  // ...
+}
+```
+
+<Note>
+The server uses multiple JSON parsing strategies to handle different response formats. Parsing rarely fails completely.
+</Note>
+
+## Retry Mechanism
+
+### Automatic Retry Conditions
+
+The server automatically retries requests for:
+
+1. **Server Errors**: HTTP 5xx status codes
+2. **Rate Limiting**: HTTP 429 status code
+3. **Network Errors**: Connection failures, DNS errors, etc.
+
+### Non-Retry Conditions
+
+The server does NOT retry for:
+
+1. **Validation Errors**: Input validation failures
+2. **Client Errors**: HTTP 4xx (except 429)
+3. **API Key Errors**: Missing or invalid API key
+4. **Final Retry Exhaustion**: After max retries exceeded
+
+### Retry Configuration
+
+```javascript index.js:122
+async makeRequest(endpoint, data, retryCount = 0) {
+  // Retry logic with exponential backoff
+}
+```
+
+**Default Configuration**:
+- Max Retries: 3 (configurable via `GROK_MAX_RETRIES`)
+- Initial Delay: 1 second
+- Backoff: Exponential (2^n)
+- Max Delay: 10 seconds
+
+**Custom Configuration**:
+```json
+{
+  "env": {
+    "XAI_API_KEY": "your-key",
+    "GROK_MAX_RETRIES": "5"
+  }
+}
+```
+
+## Error Logging
+
+The server logs all errors using structured logging:
+
+```javascript index.js:74-88
+class Logger {
+  static log(level, message, data = null) {
+    const timestamp = new Date().toISOString();
+    const logEntry = {
+      timestamp,
+      level,
+      message,
+      ...(data && { data })
+    };
+    
+    if (level === 'error') {
+      console.error(JSON.stringify(logEntry));
+    }
+  }
+}
+```
+
+**Log Levels**:
+- `error`: Critical errors, failed requests
+- `warn`: Retry attempts, recoverable issues
+- `info`: General information
+- `debug`: Detailed debugging information
+
+**Example Log Entry**:
+```json
+{
+  "timestamp": "2025-06-04T10:30:00.000Z",
+  "level": "error",
+  "message": "Search failed",
+  "data": {
+    "query": "test query",
+    "error": "API request failed: 429"
+  }
+}
+```
+
+## Health Monitoring
+
+Use the `health_check` tool to monitor server health:
+
+```json
+{
+  "tool": "health_check",
+  "parameters": {}
+}
+```
+
+**Healthy Response**:
+```json
+{
+  "server_healthy": true,
+  "api_healthy": true,
+  "uptime_ms": 3600000,
+  "total_requests": 150,
+  "error_count": 5,
+  "success_rate": "96.67%",
+  "api_details": {
+    "hasApiKey": true,
+    "cacheSize": 12,
+    "lastError": null
+  }
+}
+```
+
+**Unhealthy Response**:
+```json
+{
+  "server_healthy": true,
+  "api_healthy": false,
+  "api_details": {
+    "hasApiKey": false,
+    "cacheSize": 0,
+    "lastError": "API service is not healthy - missing XAI_API_KEY"
+  }
+}
+```
+
+## Troubleshooting Guide
+
+### Common Issues and Solutions
+
+#### Issue: "API service is not healthy"
+
+**Diagnosis**:
+```json
+{
+  "tool": "health_check"
+}
+```
+
+**Solution**:
+1. Check `api_details.hasApiKey` in health response
+2. Verify `XAI_API_KEY` in Claude Desktop config
+3. Ensure API key starts with `xai-`
+4. Restart Claude Desktop
+
+#### Issue: Frequent Timeouts
+
+**Diagnosis**:
+- Check `health_check` for `lastError` containing "timeout"
+- Review request patterns (comprehensive vs basic)
+
+**Solution**:
+```json
+{
+  "env": {
+    "GROK_TIMEOUT": "60000",  // Increase to 60 seconds
+    "GROK_MAX_RETRIES": "5"   // Increase retries
+  }
+}
+```
+
+#### Issue: High Error Rate
+
+**Diagnosis**:
+```json
+{
+  "success_rate": "75.00%",  // Below 90%
+  "error_count": 25
+}
+```
+
+**Possible Causes**:
+1. Network connectivity issues
+2. API rate limiting
+3. Invalid queries or parameters
+4. Timeout too low for comprehensive mode
+
+**Solution**:
+- Review error logs for patterns
+- Adjust timeout and retry settings
+- Validate input parameters
+- Check xAI API status
+
+#### Issue: "Rate limit exceeded"
+
+**Automatic Handling**: Server retries automatically
+
+**Manual Solution**:
+1. Wait for retry to complete (up to 10 seconds)
+2. Reduce request frequency
+3. Increase `GROK_MAX_RETRIES` for more attempts
+4. Check xAI API limits and usage
+
+#### Issue: No Results Returned
+
+**Diagnosis**:
+- Check if response has empty `results` array
+- Review query and date parameters
+- Verify search type is appropriate
+
+**Solution**:
+1. Try different search type (web vs news)
+2. Remove or adjust date filters
+3. Simplify query terms
+4. Increase `max_results` parameter
+
+### Debugging Steps
+
+1. **Check Health Status**:
+```json
+{"tool": "health_check"}
+```
+
+2. **Review Error Response**:
+- Check `error` field for details
+- Note `request_id` for tracking
+- Review `timestamp` for timing issues
+
+3. **Test with Simple Query**:
+```json
+{
+  "tool": "grok_search",
+  "parameters": {
+    "query": "test",
+    "analysis_mode": "basic",
+    "max_results": 3
+  }
+}
+```
+
+4. **Check Configuration**:
+```bash
+cat ~/Library/Application\ Support/Claude/claude_desktop_config.json
+```
+
+5. **Verify Network**:
+```bash
+ping api.x.ai
+```
+
+## Error Handling Best Practices
+
+### Input Validation
+
+Validate inputs before sending requests:
+
+```javascript
+function validateSearchParams(params) {
+  // Check query
+  if (!params.query || params.query.trim().length === 0) {
+    return { valid: false, error: "Query is required" };
+  }
+  
+  if (params.query.length > 1000) {
+    return { valid: false, error: "Query too long" };
+  }
+  
+  // Check dates
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (params.from_date && !dateRegex.test(params.from_date)) {
+    return { valid: false, error: "Invalid from_date format" };
+  }
+  
+  return { valid: true };
+}
+```
+
+### Graceful Degradation
+
+Handle errors gracefully:
+
+```javascript
+function handleSearchResponse(response) {
+  if (response.error) {
+    // Log error
+    console.error(`Search failed: ${response.error}`);
+    
+    // Provide fallback
+    return {
+      success: false,
+      message: "Search unavailable, please try again",
+      error: response.error
+    };
+  }
+  
+  return {
+    success: true,
+    data: response.results
+  };
+}
+```
+
+### Retry Strategy
+
+<Warning>
+The server handles retries automatically. Do not implement additional retry logic in your application to avoid cascading delays.
+</Warning>
+
+### Timeout Configuration
+
+Set appropriate timeouts based on usage:
+
+**Basic Mode**:
+```json
+{"GROK_TIMEOUT": "30000"}  // 30 seconds
+```
+
+**Comprehensive Mode**:
+```json
+{"GROK_TIMEOUT": "60000"}  // 60 seconds
+```
+
+**Mixed Usage**:
+```json
+{"GROK_TIMEOUT": "45000"}  // 45 seconds (compromise)
+```
+
+## Server Error Tracking
+
+The server tracks errors internally:
+
+```javascript index.js:164,189
+this.lastError = error.message;
+```
+
+Access via health check:
+```json
+{
+  "api_details": {
+    "lastError": "Request timeout after 30000ms"
+  }
+}
+```
+
+<Note>
+`lastError` shows the most recent error. Use this to diagnose recurring issues.
+</Note>
+
+## Request Tracking
+
+Every error response includes a unique request ID:
+
+```javascript index.js:886
+request_id: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+```
+
+**Format**: `req_{timestamp}_{random}`
+
+**Example**: `req_1717498200000_abc123xyz`
+
+Use this to track specific failed requests in logs.

@@ -1,0 +1,276 @@
+---
+title: grok_search
+description: Universal search tool with AI-powered capabilities supporting web, news, and general search types with comprehensive analysis modes
+---
+
+## Overview
+
+The `grok_search` tool is the primary universal search interface that provides AI-powered search capabilities across multiple content types. It supports both basic search results and comprehensive analysis with timelines, quotes, and multiple perspectives.
+
+## Parameters
+
+<ParamField path="query" type="string" required>
+  The search query to execute. Must be a non-empty string with a maximum length of 1000 characters.
+</ParamField>
+
+<ParamField path="search_type" type="string" default="web">
+  Type of search to perform. Must be one of:
+  - `web` - Search general web content including articles, blogs, and informational pages
+  - `news` - Focus on recent news articles and current events
+  - `general` - Comprehensive search across all sources including web, news, and social media
+  
+  **Default:** `web`
+</ParamField>
+
+<ParamField path="analysis_mode" type="string" default="basic">
+  Analysis depth and format. Must be one of:
+  - `basic` - Returns simple search results with titles, snippets, and URLs
+  - `comprehensive` - Provides detailed analysis with timelines, quotes, multiple perspectives, and context (500+ word analysis)
+  
+  **Default:** `basic`
+  
+  **Note:** Comprehensive analyses are cached for 30 minutes and use approximately 4000 tokens vs 2000 for basic mode.
+</ParamField>
+
+<ParamField path="max_results" type="number" default={10}>
+  Maximum number of search results to return.
+  
+  **Constraints:**
+  - Minimum: 1
+  - Maximum: 20
+  - Default: 10
+</ParamField>
+
+<ParamField path="from_date" type="string">
+  Optional start date for search in ISO8601 format (YYYY-MM-DD). Limits search to content from this date onwards.
+  
+  **Validation:**
+  - Must match pattern: `^\d{4}-\d{2}-\d{2}$`
+  - Must be a valid calendar date
+  - Must be before or equal to `to_date` if both are provided
+  
+  **Example:** `2025-01-01`
+</ParamField>
+
+<ParamField path="to_date" type="string">
+  Optional end date for search in ISO8601 format (YYYY-MM-DD). Limits search to content up to this date.
+  
+  **Validation:**
+  - Must match pattern: `^\d{4}-\d{2}-\d{2}$`
+  - Must be a valid calendar date
+  - Must be after or equal to `from_date` if both are provided
+  
+  **Example:** `2025-12-31`
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```json Basic Web Search
+{
+  "name": "grok_search",
+  "arguments": {
+    "query": "latest AI developments",
+    "search_type": "web",
+    "max_results": 5,
+    "analysis_mode": "basic"
+  }
+}
+```
+
+```json News Search with Date Range
+{
+  "name": "grok_search",
+  "arguments": {
+    "query": "climate change policy",
+    "search_type": "news",
+    "max_results": 10,
+    "analysis_mode": "basic",
+    "from_date": "2025-01-01",
+    "to_date": "2025-03-31"
+  }
+}
+```
+
+```json Comprehensive Analysis
+{
+  "name": "grok_search",
+  "arguments": {
+    "query": "quantum computing breakthroughs 2025",
+    "search_type": "general",
+    "max_results": 15,
+    "analysis_mode": "comprehensive",
+    "from_date": "2025-01-01"
+  }
+}
+```
+
+</CodeGroup>
+
+## Response Format
+
+### Basic Mode Response
+
+```json
+{
+  "query": "latest AI developments",
+  "analysis_mode": "basic",
+  "results": [
+    {
+      "title": "Major AI Breakthrough Announced",
+      "snippet": "Researchers have developed a new approach to artificial intelligence that significantly improves...",
+      "url": "https://example.com/ai-breakthrough",
+      "source": "Tech News Daily",
+      "published_date": "2025-03-01",
+      "author": "Dr. Jane Smith",
+      "citation_url": "https://example.com/ai-breakthrough",
+      "citation_index": 0,
+      "citation_metadata": {
+        "index": 0,
+        "url": "https://example.com/ai-breakthrough",
+        "domain": "example.com",
+        "protocol": "https",
+        "is_secure": true,
+        "path": "/ai-breakthrough"
+      }
+    }
+  ],
+  "citations": [
+    "https://example.com/ai-breakthrough",
+    "https://example.com/ai-analysis"
+  ],
+  "citation_metadata": [
+    {
+      "index": 0,
+      "url": "https://example.com/ai-breakthrough",
+      "domain": "example.com",
+      "protocol": "https",
+      "is_secure": true,
+      "path": "/ai-breakthrough"
+    }
+  ],
+  "summary": "Recent developments in AI show significant progress in multiple areas including natural language processing and computer vision.",
+  "total_results": 5,
+  "search_time": "2025-03-04T12:00:00Z",
+  "source": "grok-live-search"
+}
+```
+
+### Comprehensive Mode Response
+
+```json
+{
+  "query": "quantum computing breakthroughs 2025",
+  "analysis_mode": "comprehensive",
+  "comprehensive_analysis": "A detailed 500+ word analysis providing deep context, background, and implications...",
+  "key_findings": [
+    {
+      "category": "main_story",
+      "title": "IBM Announces 1000-Qubit Quantum Processor",
+      "content": "Detailed explanation with specifics, numbers, dates...",
+      "sources": [
+        "https://example.com/ibm-quantum",
+        "https://example.com/quantum-news"
+      ],
+      "confidence": "high"
+    }
+  ],
+  "timeline": [
+    {
+      "date": "2025-01-15",
+      "event": "IBM unveils new quantum processor architecture",
+      "source": "IBM Research Blog",
+      "significance": "Major milestone in quantum computing scalability"
+    }
+  ],
+  "direct_quotes": [
+    {
+      "quote": "This represents a fundamental shift in quantum computing capabilities",
+      "speaker": "Dr. John Doe, IBM Quantum Lead",
+      "context": "Announcement of 1000-qubit processor",
+      "source_url": "https://example.com/ibm-quantum",
+      "significance": "Indicates major breakthrough in quantum scaling"
+    }
+  ],
+  "related_context": "Background information and related developments...",
+  "multiple_perspectives": [
+    {
+      "viewpoint": "Industry Optimism",
+      "content": "Detailed perspective from industry leaders...",
+      "sources": ["https://example.com/industry-view"],
+      "reasoning": "Explanation of this perspective..."
+    }
+  ],
+  "implications": {
+    "short_term": "Immediate impact on quantum research and development",
+    "long_term": "Potential transformation of cryptography and drug discovery",
+    "stakeholders_affected": [
+      "Quantum researchers",
+      "Technology companies",
+      "Cybersecurity professionals"
+    ]
+  },
+  "verification_status": {
+    "confirmed_facts": [
+      "IBM announced 1000-qubit processor",
+      "First demonstration completed in January 2025"
+    ],
+    "unconfirmed_claims": [
+      "Commercial availability by end of 2025"
+    ],
+    "contradictory_information": []
+  },
+  "raw_results": [
+    {
+      "title": "IBM Quantum Breakthrough",
+      "snippet": "Full article snippet...",
+      "url": "https://example.com/ibm-quantum",
+      "relevance_score": 9.5
+    }
+  ],
+  "results": [],
+  "citations": [
+    "https://example.com/ibm-quantum"
+  ],
+  "citation_metadata": [],
+  "summary": "Brief overview of findings",
+  "total_results": 15,
+  "search_time": "2025-03-04T12:00:00Z",
+  "source": "grok-comprehensive-analysis"
+}
+```
+
+## Error Response
+
+```json
+{
+  "error": "Search query must be a non-empty string",
+  "status": "failed",
+  "query": "",
+  "search_type": "web",
+  "analysis_mode": "basic",
+  "timestamp": "2025-03-04T12:00:00Z",
+  "request_id": "req_1709560800000_abc123",
+  "from_date": null,
+  "to_date": null
+}
+```
+
+## Common Error Messages
+
+- `Search query must be a non-empty string` - Query parameter is missing or empty
+- `Search query too long (max 1000 characters)` - Query exceeds maximum length
+- `from_date must be in ISO8601 format (YYYY-MM-DD)` - Invalid date format
+- `from_date must be before or equal to to_date` - Invalid date range
+- `API service is not healthy - missing XAI_API_KEY` - API key not configured
+- `Request timeout after 30000ms` - Request exceeded timeout limit
+
+## Usage Notes
+
+- **Performance**: Basic mode responds faster and uses fewer tokens than comprehensive mode
+- **Caching**: Comprehensive analyses are automatically cached for 30 minutes
+- **Retries**: The server automatically retries failed requests up to 3 times with exponential backoff
+- **Token Usage**: Basic mode uses ~2000 tokens, comprehensive mode uses ~4000 tokens
+- **Date Filtering**: Date ranges apply to content publication dates, not query time
+- **Citation Metadata**: Enhanced citation processing includes domain validation and security status

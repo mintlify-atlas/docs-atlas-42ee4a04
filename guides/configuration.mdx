@@ -1,0 +1,353 @@
+---
+title: Configuration
+description: Environment variables and configuration options for Grok Search MCP Server
+---
+
+## Environment Variables
+
+The Grok Search MCP Server uses environment variables for configuration. These are set in your Claude Desktop configuration file.
+
+### Required Configuration
+
+#### XAI_API_KEY
+
+**Required**: Your xAI API key from the [xAI Developer Portal](https://console.x.ai/)
+
+```json
+{
+  "mcpServers": {
+    "grok-search": {
+      "command": "npx",
+      "args": ["grok-search-mcp"],
+      "env": {
+        "XAI_API_KEY": "xai-your-actual-api-key-here"
+      }
+    }
+  }
+}
+```
+
+<Warning>
+The server will not start without a valid API key. If the `XAI_API_KEY` is missing, the server sets `isHealthy = false` and logs an error.
+</Warning>
+
+### Optional Configuration
+
+#### GROK_TIMEOUT
+
+**Type**: Integer (milliseconds)
+**Default**: `30000` (30 seconds)
+**Valid Range**: 1000 - 120000
+
+Controls the maximum time to wait for API responses before timing out.
+
+```json index.js:102
+{
+  "env": {
+    "XAI_API_KEY": "your-key",
+    "GROK_TIMEOUT": "45000"
+  }
+}
+```
+
+<Tip>
+Increase the timeout for comprehensive analysis requests, which typically take longer to process (20-40 seconds).
+</Tip>
+
+#### GROK_MAX_RETRIES
+
+**Type**: Integer
+**Default**: `3`
+**Valid Range**: 0 - 10
+
+Number of retry attempts for failed requests before giving up.
+
+```json index.js:103
+{
+  "env": {
+    "XAI_API_KEY": "your-key",
+    "GROK_MAX_RETRIES": "5"
+  }
+}
+```
+
+The retry mechanism uses exponential backoff:
+- **Attempt 1**: Wait 1 second
+- **Attempt 2**: Wait 2 seconds
+- **Attempt 3**: Wait 4 seconds
+- **Maximum**: Wait capped at 10 seconds
+
+## Configuration File Locations
+
+### macOS
+```bash
+~/Library/Application Support/Claude/claude_desktop_config.json
+```
+
+Open in editor:
+```bash
+open -e ~/Library/Application\ Support/Claude/claude_desktop_config.json
+```
+
+### Windows
+```
+%APPDATA%\Claude\claude_desktop_config.json
+```
+
+Open in Notepad:
+```cmd
+notepad %APPDATA%\Claude\claude_desktop_config.json
+```
+
+### Linux
+```bash
+~/.config/Claude/claude_desktop_config.json
+```
+
+## Complete Configuration Examples
+
+### Basic Configuration
+
+Minimal setup with just the API key:
+
+```json
+{
+  "mcpServers": {
+    "grok-search": {
+      "command": "npx",
+      "args": ["grok-search-mcp"],
+      "env": {
+        "XAI_API_KEY": "xai-your-api-key"
+      }
+    }
+  }
+}
+```
+
+### Advanced Configuration
+
+Full configuration with all optional parameters:
+
+```json
+{
+  "mcpServers": {
+    "grok-search": {
+      "command": "npx",
+      "args": ["grok-search-mcp"],
+      "env": {
+        "XAI_API_KEY": "xai-your-api-key",
+        "GROK_TIMEOUT": "45000",
+        "GROK_MAX_RETRIES": "5"
+      }
+    }
+  }
+}
+```
+
+<Note>
+Optimal settings for comprehensive analysis:
+- `GROK_TIMEOUT`: 45000-60000 (45-60 seconds)
+- `GROK_MAX_RETRIES`: 3-5
+</Note>
+
+### Development Configuration
+
+For local development and testing:
+
+```json
+{
+  "mcpServers": {
+    "grok-search-dev": {
+      "command": "node",
+      "args": ["/path/to/grok-search-mcp/index.js"],
+      "cwd": "/path/to/grok-search-mcp",
+      "env": {
+        "XAI_API_KEY": "xai-your-api-key",
+        "NODE_ENV": "development",
+        "GROK_TIMEOUT": "60000",
+        "GROK_MAX_RETRIES": "2"
+      }
+    }
+  }
+}
+```
+
+## Internal Configuration
+
+### Cache Configuration
+
+The server uses an in-memory cache for comprehensive analyses:
+
+```javascript index.js:37-41
+class SearchCache {
+  constructor(maxSize = 100, ttlMinutes = 30) {
+    this.cache = new Map();
+    this.maxSize = maxSize;
+    this.ttl = ttlMinutes * 60 * 1000;
+  }
+}
+```
+
+**Cache Settings**:
+- **Max Size**: 100 items (LRU eviction)
+- **TTL**: 30 minutes
+- **Scope**: Only comprehensive analysis results
+
+<Tip>
+Basic searches are never cached to ensure fresh results. Only expensive comprehensive analyses are cached.
+</Tip>
+
+### Token Limits
+
+Different analysis modes use different token limits:
+
+```javascript index.js:262
+max_tokens: analysisMode === "comprehensive" ? 4000 : 2000
+```
+
+- **Basic Mode**: 2000 tokens (~1500 words)
+- **Comprehensive Mode**: 4000 tokens (~3000 words)
+
+## Verifying Configuration
+
+### Health Check
+
+Use the `health_check` tool to verify your configuration:
+
+```json
+{
+  "tool": "health_check",
+  "parameters": {}
+}
+```
+
+**Healthy Response**:
+```json
+{
+  "server_healthy": true,
+  "api_healthy": true,
+  "uptime_ms": 123456,
+  "total_requests": 10,
+  "error_count": 0,
+  "success_rate": "100.00%",
+  "api_details": {
+    "hasApiKey": true,
+    "cacheSize": 3,
+    "lastError": null
+  }
+}
+```
+
+**Unhealthy Response** (missing API key):
+```json index.js:107-110
+{
+  "server_healthy": true,
+  "api_healthy": false,
+  "api_details": {
+    "hasApiKey": false,
+    "lastError": "XAI_API_KEY environment variable is required"
+  }
+}
+```
+
+### Command Line Verification
+
+Test the server from command line:
+
+```bash
+XAI_API_KEY=your-key npx grok-search-mcp --help
+```
+
+You should see:
+```
+Grok Search MCP Server v1.0.0
+
+USAGE:
+  grok-search-mcp [options]
+
+ENVIRONMENT VARIABLES:
+  XAI_API_KEY          Required: Your xAI API key
+  GROK_TIMEOUT         Optional: Request timeout in ms (default: 30000)
+  GROK_MAX_RETRIES     Optional: Max retry attempts (default: 3)
+```
+
+## Troubleshooting Configuration
+
+### Server Not Starting
+
+1. **Check JSON syntax**:
+```bash
+python -m json.tool ~/Library/Application\ Support/Claude/claude_desktop_config.json
+```
+
+2. **Verify API key format**:
+- Must start with `xai-`
+- No extra spaces or quotes
+- Complete key copied from xAI portal
+
+3. **Restart Claude Desktop**:
+- Completely quit the application
+- Restart to load new configuration
+
+### Configuration Not Taking Effect
+
+<Warning>
+Claude Desktop only reads the configuration file on startup. You must fully restart the application after any changes.
+</Warning>
+
+### Invalid Environment Values
+
+The server validates environment variables at startup:
+
+```javascript index.js:98-110
+constructor() {
+  this.baseURL = "https://api.x.ai/v1";
+  this.apiKey = process.env.XAI_API_KEY;
+  this.requestTimeout = parseInt(process.env.GROK_TIMEOUT || '30000');
+  this.maxRetries = parseInt(process.env.GROK_MAX_RETRIES || '3');
+  this.isHealthy = true;
+  
+  if (!this.apiKey) {
+    this.isHealthy = false;
+    Logger.error("XAI_API_KEY environment variable is required");
+  }
+}
+```
+
+**Common Issues**:
+- Non-numeric values for `GROK_TIMEOUT` default to 30000
+- Non-numeric values for `GROK_MAX_RETRIES` default to 3
+- Missing `XAI_API_KEY` sets `isHealthy = false`
+
+## Security Best Practices
+
+### API Key Security
+
+<Warning>
+- Never commit API keys to version control
+- Never share configuration files containing API keys
+- Rotate API keys regularly through xAI portal
+- Monitor API usage for unauthorized access
+</Warning>
+
+### File Permissions
+
+Protect your configuration file:
+
+```bash
+# macOS/Linux
+chmod 600 ~/Library/Application\ Support/Claude/claude_desktop_config.json
+```
+
+### Environment Variables
+
+API keys are only stored in:
+- The Claude Desktop configuration file
+- Server process environment (not logged)
+- Never in cache or logs
+
+```javascript index.js:137-138
+headers: {
+  'Authorization': `Bearer ${this.apiKey}`,
+}
+```

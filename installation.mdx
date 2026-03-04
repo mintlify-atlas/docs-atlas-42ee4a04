@@ -1,0 +1,397 @@
+---
+title: Installation
+description: Step-by-step guide to install and configure Grok Search MCP Server
+---
+
+## Prerequisites
+
+Before installing, ensure you have:
+
+<CardGroup cols={2}>
+  <Card title="Node.js 18+" icon="node-js">
+    Download from [nodejs.org](https://nodejs.org/)
+  </Card>
+  <Card title="xAI API key" icon="key">
+    Get yours at [console.x.ai](https://console.x.ai/)
+  </Card>
+  <Card title="Claude Desktop" icon="desktop">
+    Download from [claude.ai/desktop](https://claude.ai/desktop)
+  </Card>
+  <Card title="Git" icon="git">
+    Install from [git-scm.com](https://git-scm.com/)
+  </Card>
+</CardGroup>
+
+## Step 1: Obtain xAI API key
+
+<Steps>
+  <Step title="Visit xAI Developer Portal">
+    Navigate to [console.x.ai](https://console.x.ai/) and create an account or sign in.
+  </Step>
+  
+  <Step title="Generate API key">
+    In the API Keys section, click "Generate New API Key".
+  </Step>
+  
+  <Step title="Copy your key">
+    Copy the API key (format: `xai-...`) and store it securely. You'll need it for configuration.
+  </Step>
+</Steps>
+
+<Warning>
+  Your API key is sensitive. Never share it publicly or commit it to version control.
+</Warning>
+
+## Step 2: Install the server
+
+<Tabs>
+  <Tab title="Global installation (recommended)">
+    Install globally for system-wide access:
+
+    ```bash
+    git clone https://github.com/stat-guy/grok-search-mcp.git
+    cd grok-search-mcp
+    npm install -g .
+    ```
+
+    This makes the `grok-search-mcp` command available globally.
+  </Tab>
+  
+  <Tab title="NPX (no installation)">
+    Use NPX to run without installing:
+
+    ```bash
+    npx grok-search-mcp
+    ```
+
+    NPX will automatically download and run the latest version.
+  </Tab>
+  
+  <Tab title="Local development">
+    Clone and run locally for development:
+
+    ```bash
+    git clone https://github.com/stat-guy/grok-search-mcp.git
+    cd grok-search-mcp
+    npm install
+    node index.js
+    ```
+  </Tab>
+</Tabs>
+
+## Step 3: Verify installation
+
+Test that the installation worked:
+
+```bash
+npx grok-search-mcp --help
+```
+
+**Expected output:**
+
+```text
+Grok Search MCP Server v1.0.0
+
+USAGE:
+  grok-search-mcp [options]
+
+OPTIONS:
+  --help, -h    Show this help message
+
+DESCRIPTION:
+  MCP server providing comprehensive web search capabilities using xAI's Grok API.
+  Supports basic search results and comprehensive analysis with timelines, quotes,
+  and multiple perspectives.
+
+ENVIRONMENT VARIABLES:
+  XAI_API_KEY          Required: Your xAI API key from https://console.x.ai/
+  GROK_TIMEOUT         Optional: Request timeout in ms (default: 30000)
+  GROK_MAX_RETRIES     Optional: Max retry attempts (default: 3)
+```
+
+<Check>
+  If you see this help message, your installation is successful!
+</Check>
+
+## Step 4: Configure Claude Desktop
+
+<Tabs>
+  <Tab title="macOS">
+    ### Locate configuration file
+
+    The configuration file is at:
+    ```bash
+    ~/Library/Application Support/Claude/claude_desktop_config.json
+    ```
+
+    ### Edit configuration
+
+    Open the file in your editor:
+    ```bash
+    open -e ~/Library/Application\ Support/Claude/claude_desktop_config.json
+    ```
+
+    ### Add server configuration
+
+    Add the Grok Search server to your configuration:
+
+    ```json
+    {
+      "mcpServers": {
+        "grok-search": {
+          "command": "npx",
+          "args": ["grok-search-mcp"],
+          "env": {
+            "XAI_API_KEY": "xai-your-actual-api-key-here"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Windows">
+    ### Locate configuration file
+
+    The configuration file is at:
+    ```cmd
+    %APPDATA%\Claude\claude_desktop_config.json
+    ```
+
+    ### Edit configuration
+
+    Open the file in Notepad:
+    ```cmd
+    notepad %APPDATA%\Claude\claude_desktop_config.json
+    ```
+
+    ### Add server configuration
+
+    Add the Grok Search server to your configuration:
+
+    ```json
+    {
+      "mcpServers": {
+        "grok-search": {
+          "command": "npx",
+          "args": ["grok-search-mcp"],
+          "env": {
+            "XAI_API_KEY": "xai-your-actual-api-key-here"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Linux">
+    ### Locate configuration file
+
+    The configuration file is at:
+    ```bash
+    ~/.config/Claude/claude_desktop_config.json
+    ```
+
+    ### Edit configuration
+
+    Open the file in your editor:
+    ```bash
+    nano ~/.config/Claude/claude_desktop_config.json
+    ```
+
+    ### Add server configuration
+
+    Add the Grok Search server to your configuration:
+
+    ```json
+    {
+      "mcpServers": {
+        "grok-search": {
+          "command": "npx",
+          "args": ["grok-search-mcp"],
+          "env": {
+            "XAI_API_KEY": "xai-your-actual-api-key-here"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Replace `xai-your-actual-api-key-here` with your actual xAI API key from Step 1.
+</Note>
+
+## Step 5: Advanced configuration (optional)
+
+Customize server behavior with additional environment variables:
+
+<CodeGroup>
+```json Basic configuration
+{
+  "mcpServers": {
+    "grok-search": {
+      "command": "npx",
+      "args": ["grok-search-mcp"],
+      "env": {
+        "XAI_API_KEY": "xai-your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+```json Advanced configuration
+{
+  "mcpServers": {
+    "grok-search": {
+      "command": "npx",
+      "args": ["grok-search-mcp"],
+      "env": {
+        "XAI_API_KEY": "xai-your-api-key-here",
+        "GROK_TIMEOUT": "45000",
+        "GROK_MAX_RETRIES": "5"
+      }
+    }
+  }
+}
+```
+
+```json Development configuration
+{
+  "mcpServers": {
+    "grok-search-dev": {
+      "command": "node",
+      "args": ["/path/to/grok-search-mcp/index.js"],
+      "cwd": "/path/to/grok-search-mcp",
+      "env": {
+        "XAI_API_KEY": "xai-your-api-key-here",
+        "NODE_ENV": "development"
+      }
+    }
+  }
+}
+```
+</CodeGroup>
+
+### Configuration options
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `XAI_API_KEY` | *Required* | Your xAI API key from console.x.ai |
+| `GROK_TIMEOUT` | `30000` | Request timeout in milliseconds |
+| `GROK_MAX_RETRIES` | `3` | Maximum retry attempts for failed requests |
+
+## Step 6: Restart Claude Desktop
+
+<Steps>
+  <Step title="Quit Claude Desktop">
+    Completely quit the application (not just close the window).
+  </Step>
+  
+  <Step title="Restart the application">
+    Launch Claude Desktop again.
+  </Step>
+  
+  <Step title="Verify server is loaded">
+    The Grok Search tools should now appear in your available tools.
+  </Step>
+</Steps>
+
+<Tip>
+  On macOS, use Cmd+Q to fully quit Claude Desktop. On Windows, right-click the system tray icon and select Quit.
+</Tip>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Server not appearing in Claude Desktop">
+    **Symptoms:** Tools don't show up after restart
+
+    **Solutions:**
+    1. Verify the configuration file path is correct for your OS
+    2. Check JSON syntax with a validator
+    3. Ensure Claude Desktop was fully quit and restarted
+    4. Check that Node.js 18+ is installed: `node --version`
+    5. Test NPX access: `npx grok-search-mcp --help`
+  </Accordion>
+  
+  <Accordion title="API key not working">
+    **Symptoms:** "API service is not healthy" errors
+
+    **Solutions:**
+    1. Verify your API key starts with `xai-`
+    2. Check for extra spaces or quotes around the key
+    3. Ensure the key is active in the xAI Developer Portal
+    4. Try regenerating your API key
+  </Accordion>
+  
+  <Accordion title="Command not found errors">
+    **Symptoms:** `npx: command not found` or similar
+
+    **Solutions:**
+    1. Verify Node.js is installed: `node --version`
+    2. Verify NPM is installed: `npm --version`
+    3. Update NPM: `npm install -g npm@latest`
+    4. Reinstall Node.js from nodejs.org
+  </Accordion>
+  
+  <Accordion title="JSON configuration errors">
+    **Symptoms:** Claude Desktop fails to start or shows errors
+
+    **Solutions:**
+    1. Validate JSON syntax with a validator
+    2. Check for missing commas or brackets
+    3. Ensure proper quote escaping
+    4. Backup and recreate the configuration file
+  </Accordion>
+</AccordionGroup>
+
+## Verification
+
+Test your installation using the health check:
+
+```json
+{
+  "tool": "health_check",
+  "parameters": {}
+}
+```
+
+**Expected response:**
+
+```json
+{
+  "server_healthy": true,
+  "api_healthy": true,
+  "uptime_ms": 3600000,
+  "total_requests": 0,
+  "error_count": 0,
+  "success_rate": "N/A",
+  "api_details": {
+    "hasApiKey": true,
+    "cacheSize": 0,
+    "lastError": null
+  }
+}
+```
+
+<Check>
+  If `server_healthy` and `api_healthy` are both `true`, you're ready to start searching!
+</Check>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart guide" icon="rocket" href="/quickstart">
+    Try your first search and explore the available tools
+  </Card>
+  <Card title="API reference" icon="book" href="/api-reference">
+    Learn about all available tools and parameters
+  </Card>
+</CardGroup>
+
+<Warning>
+  Remember to never share your API key publicly or commit it to version control. Use environment variables for sensitive configuration.
+</Warning>

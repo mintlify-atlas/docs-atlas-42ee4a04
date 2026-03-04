@@ -1,0 +1,239 @@
+---
+title: 'Basic Response Format'
+description: 'Structure and fields returned by basic mode searches'
+---
+
+## Overview
+
+The basic response format is returned when `analysis_mode` is set to `"basic"` or omitted (default). This mode provides streamlined search results with citations, summaries, and metadata.
+
+## Response Structure
+
+<ResponseField name="query" type="string" required>
+  The original search query that was executed
+</ResponseField>
+
+<ResponseField name="analysis_mode" type="string" required>
+  The analysis mode used for this search. Always `"basic"` for basic responses
+</ResponseField>
+
+<ResponseField name="results" type="array" required>
+  Array of search result objects (max length determined by `max_results` parameter)
+  
+  <Expandable title="Result Object">
+    <ResponseField name="title" type="string" required>
+      The title or headline of the search result
+    </ResponseField>
+    
+    <ResponseField name="snippet" type="string" required>
+      Brief description or excerpt from the content (max 500 characters)
+    </ResponseField>
+    
+    <ResponseField name="url" type="string" required>
+      The URL of the search result
+    </ResponseField>
+    
+    <ResponseField name="source" type="string" required>
+      The source identifier (e.g., `"web-search"`, `"grok-live-search"`)
+    </ResponseField>
+    
+    <ResponseField name="published_date" type="string" required>
+      Publication date in `YYYY-MM-DD` format
+    </ResponseField>
+    
+    <ResponseField name="author" type="string">
+      Author name if available
+    </ResponseField>
+    
+    <ResponseField name="citation_url" type="string">
+      The citation URL associated with this result
+    </ResponseField>
+    
+    <ResponseField name="citation_index" type="number">
+      Index pointing to the citation in the `citations` array
+    </ResponseField>
+    
+    <ResponseField name="citation_metadata" type="object">
+      Metadata about the citation URL
+      
+      <Expandable title="Citation Metadata">
+        <ResponseField name="index" type="number">
+          The index of this citation
+        </ResponseField>
+        
+        <ResponseField name="url" type="string">
+          The full citation URL
+        </ResponseField>
+        
+        <ResponseField name="domain" type="string">
+          The domain name extracted from the URL
+        </ResponseField>
+        
+        <ResponseField name="protocol" type="string">
+          The URL protocol (e.g., `"https:"`, `"http:"`)
+        </ResponseField>
+        
+        <ResponseField name="is_secure" type="boolean">
+          Whether the URL uses HTTPS protocol
+        </ResponseField>
+        
+        <ResponseField name="path" type="string">
+          The URL path component
+        </ResponseField>
+        
+        <ResponseField name="error" type="string">
+          Error message if URL parsing failed
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="citations" type="array" required>
+  Array of citation URLs referenced in the search results
+</ResponseField>
+
+<ResponseField name="citation_metadata" type="array" required>
+  Array of citation metadata objects corresponding to each citation URL. See the citation_metadata structure in the Result Object above.
+</ResponseField>
+
+<ResponseField name="summary" type="string" required>
+  Brief overview of the search findings
+</ResponseField>
+
+<ResponseField name="total_results" type="number" required>
+  The total number of results returned (equal to `results.length`)
+</ResponseField>
+
+<ResponseField name="search_time" type="string" required>
+  ISO8601 timestamp of when the search was completed (e.g., `"2025-06-24T12:00:00.000Z"`)
+</ResponseField>
+
+<ResponseField name="source" type="string" required>
+  The source identifier for this response. Always `"grok-live-search"` for successful basic mode searches.
+</ResponseField>
+
+## Example Response
+
+```json
+{
+  "query": "latest AI developments",
+  "analysis_mode": "basic",
+  "results": [
+    {
+      "title": "Major Breakthrough in AI Research",
+      "snippet": "Researchers announce significant advances in natural language processing that could transform how AI systems understand context and nuance in human communication.",
+      "url": "https://example.com/ai-breakthrough",
+      "source": "grok-live-search",
+      "published_date": "2025-06-24",
+      "author": "Dr. Jane Smith",
+      "citation_url": "https://example.com/ai-breakthrough",
+      "citation_index": 0,
+      "citation_metadata": {
+        "index": 0,
+        "url": "https://example.com/ai-breakthrough",
+        "domain": "example.com",
+        "protocol": "https:",
+        "is_secure": true,
+        "path": "/ai-breakthrough"
+      }
+    },
+    {
+      "title": "AI Safety Guidelines Updated",
+      "snippet": "Leading AI organizations collaborate on new safety standards to ensure responsible development and deployment of artificial intelligence systems.",
+      "url": "https://news.example.org/ai-safety",
+      "source": "grok-live-search",
+      "published_date": "2025-06-23",
+      "citation_url": "https://news.example.org/ai-safety",
+      "citation_index": 1,
+      "citation_metadata": {
+        "index": 1,
+        "url": "https://news.example.org/ai-safety",
+        "domain": "news.example.org",
+        "protocol": "https:",
+        "is_secure": true,
+        "path": "/ai-safety"
+      }
+    }
+  ],
+  "citations": [
+    "https://example.com/ai-breakthrough",
+    "https://news.example.org/ai-safety"
+  ],
+  "citation_metadata": [
+    {
+      "index": 0,
+      "url": "https://example.com/ai-breakthrough",
+      "domain": "example.com",
+      "protocol": "https:",
+      "is_secure": true,
+      "path": "/ai-breakthrough"
+    },
+    {
+      "index": 1,
+      "url": "https://news.example.org/ai-safety",
+      "domain": "news.example.org",
+      "protocol": "https:",
+      "is_secure": true,
+      "path": "/ai-safety"
+    }
+  ],
+  "summary": "Recent developments in AI include major breakthroughs in natural language processing and updated safety guidelines from leading organizations.",
+  "total_results": 2,
+  "search_time": "2025-06-24T12:00:00.000Z",
+  "source": "grok-live-search"
+}
+```
+
+## Fallback Response
+
+When JSON parsing fails or the response format is unexpected, a fallback response is generated:
+
+```json
+{
+  "query": "search query",
+  "analysis_mode": "basic",
+  "results": [
+    {
+      "title": "Search results for: search query",
+      "snippet": "Raw response content (truncated to 500 characters)...",
+      "url": "https://first-citation.com",
+      "source": "grok-live-search",
+      "published_date": "2025-06-24",
+      "citation_url": "https://first-citation.com",
+      "citation_index": 0,
+      "citation_metadata": {
+        "index": 0,
+        "url": "https://first-citation.com",
+        "domain": "first-citation.com",
+        "protocol": "https:",
+        "is_secure": true,
+        "path": "/"
+      }
+    }
+  ],
+  "citations": ["https://first-citation.com"],
+  "citation_metadata": [
+    {
+      "index": 0,
+      "url": "https://first-citation.com",
+      "domain": "first-citation.com",
+      "protocol": "https:",
+      "is_secure": true,
+      "path": "/"
+    }
+  ],
+  "summary": "Live search results from Grok",
+  "total_results": 1,
+  "search_time": "2025-06-24T12:00:00.000Z",
+  "source": "grok-live-search"
+}
+```
+
+## Notes
+
+- The `results` array length never exceeds the `max_results` parameter (default: 10, max: 20)
+- All dates are in ISO8601 format
+- Citation metadata is automatically extracted from URLs when available
+- If URL parsing fails, the `citation_metadata.error` field will contain the error message
+- The `snippet` field is always truncated to a maximum of 500 characters

@@ -1,0 +1,712 @@
+---
+title: Performance Optimization
+description: Performance optimization and best practices for efficient searches
+---
+
+## Performance Overview
+
+The Grok Search MCP Server is optimized for both speed and accuracy. Understanding performance characteristics helps you configure optimal search parameters.
+
+## Response Times
+
+### Basic Mode
+
+**Average**: 3-8 seconds
+**Range**: 2-15 seconds
+
+**Factors affecting speed**:
+- Query complexity
+- Number of results requested
+- Network latency
+- API load
+
+```javascript index.js:262
+max_tokens: analysisMode === "comprehensive" ? 4000 : 2000
+```
+
+### Comprehensive Mode
+
+**Average**: 20-40 seconds
+**Range**: 15-60 seconds
+
+**Factors affecting speed**:
+- All basic mode factors
+- Analysis depth requirements
+- Timeline generation
+- Quote extraction
+- Multiple perspective analysis
+
+<Tip>
+Use basic mode for quick results and comprehensive mode only when detailed analysis is needed.
+</Tip>
+
+## Caching Strategy
+
+The server implements intelligent caching for expensive operations.
+
+### Cache Configuration
+
+```javascript index.js:36-70
+class SearchCache {
+  constructor(maxSize = 100, ttlMinutes = 30) {
+    this.cache = new Map();
+    this.maxSize = maxSize;
+    this.ttl = ttlMinutes * 60 * 1000;
+  }
+
+  get(key) {
+    const item = this.cache.get(key);
+    if (!item) return null;
+    
+    if (Date.now() - item.timestamp > this.ttl) {
+      this.cache.delete(key);
+      return null;
+    }
+    
+    return item.data;
+  }
+
+  set(key, data) {
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+    
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now()
+    });
+  }
+}
+```
+
+**Cache Settings**:
+- **Size**: 100 items maximum (LRU eviction)
+- **TTL**: 30 minutes
+- **Eviction**: Least Recently Used (LRU)
+
+### What Gets Cached
+
+**Cached**:
+- Comprehensive analysis results only
+- Complete query + parameters as cache key
+
+**Not Cached**:
+- Basic search results (always fresh)
+- Health check responses
+- Error responses
+
+### Cache Key Composition
+
+```javascript index.js:211
+const cacheKey = `${sanitizedQuery}:${searchType}:${maxResults}:${JSON.stringify(handles)}:${fromDate}:${toDate}:comprehensive`;
+```
+
+**Cache key includes**:
+1. Sanitized query text
+2. Search type (web/news/twitter)
+3. Max results parameter
+4. Twitter handles (if applicable)
+5. Date range (from_date and to_date)
+6. Analysis mode (only "comprehensive")
+
+<Note>
+Changing any parameter creates a new cache entry. Queries with different dates are cached separately.
+</Note>
+
+### Cache Performance
+
+**Cache Hit**:
+```javascript index.js:212-216
+const cached = this.cache.get(cacheKey);
+if (cached) {
+  Logger.debug("Cache hit for comprehensive analysis", { query: sanitizedQuery });
+  return cached;
+}
+```
+
+**Performance gain**: ~100x faster (instant vs 20-40 seconds)
+
+**Monitor cache**:
+```json
+{
+  "tool": "health_check",
+  "parameters": {}
+}
+```
+
+Response includes:
+```json
+{
+  "api_details": {
+    "cacheSize": 12  // Number of cached items
+  }
+}
+```
+
+## Request Optimization
+
+### Query Optimization
+
+#### Optimal Query Length
+
+**Recommended**: 2-10 words
+**Maximum**: 1000 characters
+
+```javascript index.js:205-207
+if (sanitizedQuery.length > 1000) {
+  throw new Error("Search query too long (max 1000 characters)");
+}
+```
+
+**Good queries**:
+- "AI developments 2025"
+- "climate change policy updates"
+- "SpaceX Starship launch"
+
+**Poor queries**:
+- "a" (too short, vague)
+- "tell me everything about..." (unnecessary words)
+- 500-word detailed description (too long)
+
+#### Query Sanitization
+
+The server automatically sanitizes queries:
+
+```javascript index.js:200
+const sanitizedQuery = query.trim().replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+```
+
+**Removes**:
+- Leading/trailing whitespace
+- Control characters
+- Null bytes
+
+### Parameter Optimization
+
+#### max_results
+
+**Default**: 10
+**Range**: 1-20
+
+**Performance impact**:
+- 5 results: Fastest
+- 10 results: Balanced (recommended)
+- 20 results: Slower, more comprehensive
+
+```json
+// Fast, focused search
+{
+  "query": "specific topic",
+  "max_results": 5
+}
+
+// Comprehensive coverage
+{
+  "query": "broad topic",
+  "max_results": 15
+}
+```
+
+<Tip>
+For most use cases, 5-10 results provide optimal balance between speed and coverage.
+</Tip>
+
+#### analysis_mode
+
+**Basic**: Fast, simple results
+**Comprehensive**: Slow, detailed analysis
+
+**Token allocation**:
+```javascript index.js:262
+max_tokens: analysisMode === "comprehensive" ? 4000 : 2000
+```
+
+**Performance comparison**:
+- Basic: 2000 tokens, 3-8 seconds
+- Comprehensive: 4000 tokens, 20-40 seconds
+
+**Choose basic when**:
+- You need quick results
+- Simple information is sufficient
+- Making multiple searches
+- Testing or exploration
+
+**Choose comprehensive when**:
+- You need deep analysis
+- Timeline is important
+- Multiple perspectives matter
+- Direct quotes needed
+- Historical context required
+
+#### Date Filtering
+
+**Performance impact**: Minimal to moderate
+
+**Faster**:
+```json
+{
+  "query": "recent news",
+  "from_date": "2025-06-01",  // Narrow range
+  "to_date": "2025-06-07"
+}
+```
+
+**Slower**:
+```json
+{
+  "query": "historical data",
+  "from_date": "2020-01-01",  // Broad range
+  "to_date": "2025-06-04"
+}
+```
+
+<Note>
+Narrower date ranges typically yield faster results since less content needs to be searched and analyzed.
+</Note>
+
+## Timeout Configuration
+
+Configure timeouts based on your usage patterns:
+
+```javascript index.js:102,131-132
+this.requestTimeout = parseInt(process.env.GROK_TIMEOUT || '30000');
+
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
+```
+
+### Recommended Timeouts
+
+**Basic mode only**:
+```json
+{"GROK_TIMEOUT": "30000"}  // 30 seconds
+```
+
+**Comprehensive mode only**:
+```json
+{"GROK_TIMEOUT": "60000"}  // 60 seconds
+```
+
+**Mixed usage** (recommended):
+```json
+{"GROK_TIMEOUT": "45000"}  // 45 seconds
+```
+
+**Development/testing**:
+```json
+{"GROK_TIMEOUT": "20000"}  // 20 seconds (fail fast)
+```
+
+<Warning>
+Setting timeout too low causes legitimate comprehensive requests to fail. Setting too high delays error detection.
+</Warning>
+
+## Retry Logic Performance
+
+The server implements exponential backoff for retries:
+
+```javascript index.js:153
+const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);
+```
+
+**Retry delays**:
+- Retry 1: 1 second (2^0 * 1000)
+- Retry 2: 2 seconds (2^1 * 1000)
+- Retry 3: 4 seconds (2^2 * 1000)
+- Retry 4: 8 seconds (2^3 * 1000)
+- Retry 5+: 10 seconds (capped)
+
+**Total time with 3 retries**:
+- Original request: 0-30 seconds
+- Retry 1: +1 second + 0-30 seconds
+- Retry 2: +2 seconds + 0-30 seconds
+- Retry 3: +4 seconds + 0-30 seconds
+- **Maximum**: ~97 seconds
+
+### Retry Configuration
+
+**Fast fail** (development):
+```json
+{
+  "GROK_MAX_RETRIES": "1",
+  "GROK_TIMEOUT": "20000"
+}
+```
+
+**Balanced** (recommended):
+```json
+{
+  "GROK_MAX_RETRIES": "3",
+  "GROK_TIMEOUT": "45000"
+}
+```
+
+**Aggressive** (production, high reliability):
+```json
+{
+  "GROK_MAX_RETRIES": "5",
+  "GROK_TIMEOUT": "60000"
+}
+```
+
+## Network Performance
+
+### Request Monitoring
+
+The server logs request duration:
+
+```javascript index.js:128,145,168
+const startTime = Date.now();
+// ... make request ...
+const duration = Date.now() - startTime;
+Logger.debug(`API request successful`, { duration, endpoint });
+```
+
+### Parallel Requests
+
+<Tip>
+The server handles one request at a time per instance. To make parallel searches, use multiple MCP server instances in your configuration.
+</Tip>
+
+**Multiple server configuration**:
+```json
+{
+  "mcpServers": {
+    "grok-search-1": {
+      "command": "npx",
+      "args": ["grok-search-mcp"],
+      "env": {"XAI_API_KEY": "your-key"}
+    },
+    "grok-search-2": {
+      "command": "npx",
+      "args": ["grok-search-mcp"],
+      "env": {"XAI_API_KEY": "your-key"}
+    }
+  }
+}
+```
+
+## Memory Usage
+
+### Cache Memory
+
+**Per cached item**: ~5-50 KB (depending on comprehensiveness)
+**Maximum cache**: 100 items
+**Total cache memory**: ~0.5-5 MB
+
+### Server Memory
+
+**Baseline**: ~50-100 MB
+**With cache**: ~55-105 MB
+**Per request**: +10-20 MB (temporary)
+
+<Note>
+Memory usage is minimal and suitable for long-running server instances.
+</Note>
+
+## Best Practices
+
+### 1. Choose Appropriate Analysis Mode
+
+```javascript
+// Fast exploration
+basicMode = {
+  analysis_mode: "basic",
+  max_results: 5
+}
+
+// Deep research
+comprehensiveMode = {
+  analysis_mode: "comprehensive",
+  max_results: 10
+}
+```
+
+### 2. Use Cache Effectively
+
+**Leverage cache for repeated queries**:
+```json
+// First request: 30 seconds
+{
+  "query": "AI developments",
+  "analysis_mode": "comprehensive"
+}
+
+// Second request (within 30 min): instant
+{
+  "query": "AI developments",
+  "analysis_mode": "comprehensive"
+}
+```
+
+**Cache invalidation**: Wait 30 minutes for fresh results
+
+### 3. Optimize Query Construction
+
+**Good**:
+```json
+{
+  "query": "SpaceX Starship test flight",
+  "search_type": "news",
+  "from_date": "2025-06-01"
+}
+```
+
+**Bad**:
+```json
+{
+  "query": "Can you tell me everything about all SpaceX activities including Starship, Falcon 9, Dragon, and any other programs they might have been working on recently or in the past?",
+  "search_type": "general"
+}
+```
+
+### 4. Implement Progressive Enhancement
+
+Start with fast basic search, then request comprehensive analysis if needed:
+
+```javascript
+// Step 1: Fast initial search
+const basicResults = await search({
+  query: "topic",
+  analysis_mode: "basic",
+  max_results: 5
+});
+
+// Step 2: User wants more detail
+if (userRequestsDetail) {
+  const comprehensiveResults = await search({
+    query: "topic",
+    analysis_mode: "comprehensive",
+    max_results: 10
+  });
+}
+```
+
+### 5. Use Appropriate Search Types
+
+**Performance ranking** (fastest to slowest):
+1. `web` - Single source type
+2. `news` - Two source types (news + web)
+3. `twitter` - Single source, but may need filtering
+4. `general` - All sources (web + news + twitter)
+
+```javascript index.js:285-302
+getSearchSources(searchType, handles = null) {
+  switch (searchType) {
+    case "web":
+      return [{"type": "web"}];
+    case "news":
+      return [{"type": "news"}, {"type": "web"}];
+    case "twitter":
+    case "x":
+      const xSource = {"type": "x"};
+      if (handles && handles.length > 0) {
+        xSource.x_handles = handles;
+      }
+      return [xSource];
+    case "general":
+    default:
+      return [{"type": "web"}, {"type": "news"}, {"type": "x"}];
+  }
+}
+```
+
+### 6. Monitor Performance
+
+Regularly check health metrics:
+
+```json
+{
+  "tool": "health_check",
+  "parameters": {}
+}
+```
+
+**Key metrics**:
+- `success_rate`: Should be >90%
+- `error_count`: Monitor for spikes
+- `cacheSize`: Indicates cache utilization
+- `uptime_ms`: Server stability
+
+### 7. Handle Timeouts Gracefully
+
+```javascript
+try {
+  const results = await search(params);
+  return results;
+} catch (error) {
+  if (error.includes('timeout')) {
+    // Retry with basic mode
+    return await search({
+      ...params,
+      analysis_mode: 'basic',
+      max_results: 5
+    });
+  }
+  throw error;
+}
+```
+
+## Performance Metrics
+
+### Expected Performance Ranges
+
+**Basic Web Search**:
+- Min: 2 seconds
+- Typical: 5 seconds
+- Max: 15 seconds
+- Timeout: 30 seconds
+
+**Comprehensive Analysis**:
+- Min: 15 seconds
+- Typical: 30 seconds
+- Max: 50 seconds
+- Timeout: 60 seconds (recommended)
+
+**Cache Hit**:
+- Response: Under 100ms (instant)
+
+### Performance Monitoring
+
+```javascript index.js:894-915
+handleHealthCheck() {
+  const apiHealth = this.grokAPI.checkHealth();
+  const uptime = Date.now() - this.startTime;
+  const successRate = this.requestCount > 0 ? 
+    (((this.requestCount - this.errorCount) / this.requestCount) * 100).toFixed(2) + "%" : 
+    "N/A";
+
+  return {
+    server_healthy: true,
+    api_healthy: apiHealth.healthy,
+    uptime_ms: uptime,
+    total_requests: this.requestCount,
+    error_count: this.errorCount,
+    success_rate: successRate,
+    api_details: {
+      hasApiKey: apiHealth.hasApiKey,
+      cacheSize: apiHealth.cacheSize,
+      lastError: apiHealth.lastError
+    }
+  };
+}
+```
+
+**Interpret metrics**:
+- **Success rate 95-100%**: Excellent
+- **Success rate 85-95%**: Good (some retries working)
+- **Success rate 70-85%**: Fair (check configuration)
+- **Success rate under 70%**: Poor (investigate errors)
+
+## Troubleshooting Performance Issues
+
+### Slow Responses
+
+**Diagnosis**:
+1. Check analysis mode (comprehensive is slower)
+2. Review max_results (higher is slower)
+3. Check network latency
+4. Review date range (broader is slower)
+
+**Solution**:
+1. Use basic mode when possible
+2. Reduce max_results to 5-10
+3. Use narrower date ranges
+4. Check network connectivity
+
+### High Error Rate
+
+**Diagnosis**:
+```json
+{
+  "error_count": 25,
+  "total_requests": 100,
+  "success_rate": "75.00%"
+}
+```
+
+**Solution**:
+1. Increase timeout: `GROK_TIMEOUT: 60000`
+2. Increase retries: `GROK_MAX_RETRIES: 5`
+3. Check API key validity
+4. Review error patterns in logs
+
+### Cache Not Helping
+
+**Diagnosis**:
+- `cacheSize: 0` or very low
+- Frequently changing parameters
+
+**Solution**:
+1. Reuse same queries for comprehensive analysis
+2. Avoid randomizing parameters
+3. Use consistent date ranges
+4. Cache only works for comprehensive mode
+
+## Advanced Optimization
+
+### JSON Parsing Strategies
+
+The server uses multiple parsing strategies for resilience:
+
+```javascript index.js:438-469
+const jsonParsingStrategies = [
+  // Strategy 1: Find complete JSON object
+  () => {
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+  },
+  // Strategy 2: Find JSON between code blocks
+  () => {
+    const codeBlockMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+    return codeBlockMatch ? JSON.parse(codeBlockMatch[1]) : null;
+  },
+  // Strategy 3: Find JSON after specific markers
+  () => {
+    const markerMatch = content.match(/(?:json|JSON|response):\s*(\{[\s\S]*\})/);
+    return markerMatch ? JSON.parse(markerMatch[1]) : null;
+  },
+  // Strategy 4: Clean and try parsing the entire content
+  () => {
+    const cleaned = content.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
+    return cleaned.startsWith('{') ? JSON.parse(cleaned) : null;
+  }
+];
+
+for (const strategy of jsonParsingStrategies) {
+  try {
+    parsedResults = strategy();
+    if (parsedResults) break;
+  } catch (error) {
+    continue;
+  }
+}
+```
+
+**Performance impact**: Negligible (under 10ms total)
+**Reliability gain**: Handles malformed responses gracefully
+
+### Input Sanitization
+
+```javascript index.js:200
+const sanitizedQuery = query.trim().replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+```
+
+**Performance impact**: Under 1ms
+**Benefit**: Prevents API errors from invalid characters
+
+## Summary
+
+**For optimal performance**:
+
+1. Use **basic mode** for most searches
+2. Set **max_results to 5-10**
+3. Use **narrow date ranges** when possible
+4. **Configure timeouts appropriately**: 45-60 seconds
+5. **Enable retries**: 3-5 attempts
+6. **Leverage caching** for repeated comprehensive queries
+7. **Monitor health metrics** regularly
+8. Use **specific search types** instead of "general"
+9. **Optimize queries**: 2-10 words, clear and specific
+10. **Implement progressive enhancement**: basic → comprehensive

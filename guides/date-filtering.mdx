@@ -1,0 +1,551 @@
+---
+title: Date Range Filtering
+description: How to use date range filtering to scope your searches by time
+---
+
+## Overview
+
+Date filtering allows you to limit search results to specific time periods. This is useful for finding recent developments, historical information, or tracking changes over time.
+
+## Date Parameter Format
+
+Dates must be in **ISO8601 format**: `YYYY-MM-DD`
+
+### Valid Examples
+```
+2025-01-01
+2024-12-31
+2025-06-15
+```
+
+### Invalid Examples
+```
+01/01/2025    ❌ Wrong format (MM/DD/YYYY)
+2025-1-1      ❌ Missing leading zeros
+2025-02-30    ❌ Invalid date (Feb 30th doesn't exist)
+2025-13-01    ❌ Invalid month (13)
+```
+
+## Available Date Parameters
+
+### from_date
+
+**Optional**: Start date for search results
+
+Limits search to content published **on or after** this date.
+
+```json
+{
+  "tool": "grok_search",
+  "parameters": {
+    "query": "AI developments",
+    "from_date": "2025-01-01"
+  }
+}
+```
+
+### to_date
+
+**Optional**: End date for search results
+
+Limits search to content published **on or before** this date.
+
+```json
+{
+  "tool": "grok_search",
+  "parameters": {
+    "query": "AI developments",
+    "to_date": "2025-06-30"
+  }
+}
+```
+
+## Date Validation
+
+The server performs comprehensive date validation:
+
+```javascript index.js:10-33
+function validateDateString(dateString, paramName) {
+  if (!dateString) {
+    return null; // Optional parameter
+  }
+  
+  // Check format
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(dateString)) {
+    throw new Error(`${paramName} must be in ISO8601 format (YYYY-MM-DD)`);
+  }
+  
+  // Check if date is valid
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    throw new Error(`${paramName} is not a valid date`);
+  }
+  
+  // Catch invalid dates like 2024-02-30
+  const isoString = date.toISOString().split('T')[0];
+  if (isoString !== dateString) {
+    throw new Error(`${paramName} is not a valid date`);
+  }
+  
+  return dateString;
+}
+```
+
+### Validation Steps
+
+1. **Format Check**: Ensures `YYYY-MM-DD` pattern
+2. **Parse Check**: Verifies date can be parsed
+3. **Logic Check**: Catches impossible dates (Feb 30, Month 13, etc.)
+4. **Range Check**: Ensures `from_date <= to_date`
+
+## Date Range Validation
+
+The server ensures `from_date` is not after `to_date`:
+
+```javascript index.js:222-229
+if (validatedFromDate && validatedToDate) {
+  const fromDateObj = new Date(validatedFromDate);
+  const toDateObj = new Date(validatedToDate);
+  if (fromDateObj > toDateObj) {
+    throw new Error("from_date must be before or equal to to_date");
+  }
+}
+```
+
+<Warning>
+Providing `from_date` after `to_date` will result in an error:
+```json
+{
+  "error": "from_date must be before or equal to to_date",
+  "status": "failed"
+}
+```
+</Warning>
+
+## Common Use Cases
+
+### Recent News (Last 30 Days)
+
+```json
+{
+  "tool": "grok_news_search",
+  "parameters": {
+    "query": "artificial intelligence",
+    "from_date": "2025-05-05",
+    "to_date": "2025-06-04"
+  }
+}
+```
+
+### Historical Research
+
+```json
+{
+  "tool": "grok_search",
+  "parameters": {
+    "query": "SpaceX launches",
+    "from_date": "2024-01-01",
+    "to_date": "2024-12-31"
+  }
+}
+```
+
+### Since Specific Date
+
+```json
+{
+  "tool": "grok_search",
+  "parameters": {
+    "query": "climate policy changes",
+    "from_date": "2025-01-01"
+  }
+}
+```
+
+<Note>
+Omitting `to_date` searches from `from_date` to present.
+</Note>
+
+### Until Specific Date
+
+```json
+{
+  "tool": "grok_search",
+  "parameters": {
+    "query": "COVID-19 pandemic",
+    "to_date": "2023-12-31"
+  }
+}
+```
+
+<Note>
+Omitting `from_date` searches from earliest available to `to_date`.
+</Note>
+
+### Exact Date Range
+
+```json
+{
+  "tool": "grok_news_search",
+  "parameters": {
+    "query": "election results",
+    "from_date": "2024-11-01",
+    "to_date": "2024-11-30",
+    "analysis_mode": "comprehensive"
+  }
+}
+```
+
+## How Date Filtering Works
+
+Date parameters are passed to the xAI API in the `search_parameters` object:
+
+```javascript index.js:242-248
+const searchParams = {
+  mode: "on",
+  return_citations: true,
+  max_search_results: maxResults,
+  sources: this.getSearchSources(searchType, handles)
+};
+
+if (validatedFromDate) {
+  searchParams.from_date = validatedFromDate;
+}
+if (validatedToDate) {
+  searchParams.to_date = validatedToDate;
+}
+```
+
+The dates filter content based on **publication date**, not search date or retrieval date.
+
+## Error Handling
+
+### Common Date Errors
+
+#### Invalid Format
+
+**Request**:
+```json
+{
+  "query": "test",
+  "from_date": "2025/01/01"
+}
+```
+
+**Error**:
+```json
+{
+  "error": "from_date must be in ISO8601 format (YYYY-MM-DD)",
+  "status": "failed",
+  "from_date": "2025/01/01",
+  "timestamp": "2025-06-04T10:30:00.000Z"
+}
+```
+
+#### Invalid Date
+
+**Request**:
+```json
+{
+  "query": "test",
+  "from_date": "2025-02-30"
+}
+```
+
+**Error**:
+```json
+{
+  "error": "from_date is not a valid date",
+  "status": "failed",
+  "from_date": "2025-02-30"
+}
+```
+
+#### Invalid Range
+
+**Request**:
+```json
+{
+  "query": "test",
+  "from_date": "2025-06-01",
+  "to_date": "2025-01-01"
+}
+```
+
+**Error**:
+```json
+{
+  "error": "from_date must be before or equal to to_date",
+  "status": "failed",
+  "from_date": "2025-06-01",
+  "to_date": "2025-01-01"
+}
+```
+
+## Date Filtering by Search Type
+
+All search types support date filtering:
+
+### Web Search
+
+```json
+{
+  "tool": "grok_web_search",
+  "parameters": {
+    "query": "machine learning tutorials",
+    "from_date": "2025-01-01"
+  }
+}
+```
+
+Filters web pages, articles, and blog posts by publication date.
+
+### News Search
+
+```json
+{
+  "tool": "grok_news_search",
+  "parameters": {
+    "query": "tech industry news",
+    "from_date": "2025-05-01",
+    "to_date": "2025-05-31"
+  }
+}
+```
+
+<Tip>
+News searches benefit most from date filtering since news is inherently time-sensitive.
+</Tip>
+
+### Twitter Search
+
+```json
+{
+  "tool": "grok_twitter",
+  "parameters": {
+    "query": "AI announcements",
+    "handles": ["OpenAI", "AnthropicAI"],
+    "from_date": "2025-06-01"
+  }
+}
+```
+
+Filters tweets by post date.
+
+## Best Practices
+
+### For Recent Information
+
+```json
+{
+  "query": "breaking news topic",
+  "from_date": "2025-06-01",  // Last 3 days
+  "search_type": "news"
+}
+```
+
+- Use `from_date` without `to_date`
+- Set to recent date (last 7-30 days)
+- Use "news" search type for freshest results
+
+### For Historical Research
+
+```json
+{
+  "query": "historical event",
+  "from_date": "2020-01-01",
+  "to_date": "2020-12-31",
+  "analysis_mode": "comprehensive"
+}
+```
+
+- Use both `from_date` and `to_date`
+- Use comprehensive mode for detailed context
+- Specify exact year or quarter
+
+### For Trend Analysis
+
+```json
+{
+  "query": "renewable energy adoption",
+  "from_date": "2024-01-01",
+  "to_date": "2025-06-04",
+  "analysis_mode": "comprehensive"
+}
+```
+
+- Use broader date ranges (6-24 months)
+- Enable comprehensive mode for timeline analysis
+- Compare multiple time periods in separate searches
+
+### For Time-Sensitive Topics
+
+```json
+{
+  "query": "product launch",
+  "from_date": "2025-06-01",
+  "to_date": "2025-06-07"
+}
+```
+
+- Use narrow date ranges (1-7 days)
+- Useful for events, launches, announcements
+- Consider timezone differences
+
+## Performance Considerations
+
+### Narrower Ranges = Faster Results
+
+<Tip>
+Searches with narrow date ranges (days/weeks) typically return faster than broad ranges (months/years).
+</Tip>
+
+### Caching with Dates
+
+Comprehensive analyses are cached with date parameters included:
+
+```javascript index.js:211
+const cacheKey = `${sanitizedQuery}:${searchType}:${maxResults}:${JSON.stringify(handles)}:${fromDate}:${toDate}:comprehensive`;
+```
+
+Searches with different dates are cached separately.
+
+### Date Filtering vs. Result Filtering
+
+Date filtering happens at the API level (more efficient) rather than filtering results after retrieval.
+
+## Examples by Use Case
+
+### Quarterly Report Research
+
+```json
+{
+  "tool": "grok_search",
+  "parameters": {
+    "query": "company earnings Q1 2025",
+    "from_date": "2025-01-01",
+    "to_date": "2025-03-31",
+    "analysis_mode": "comprehensive",
+    "max_results": 15
+  }
+}
+```
+
+### Event Timeline
+
+```json
+{
+  "tool": "grok_news_search",
+  "parameters": {
+    "query": "major event timeline",
+    "from_date": "2025-05-15",
+    "to_date": "2025-05-20",
+    "analysis_mode": "comprehensive"
+  }
+}
+```
+
+Comprehensive mode includes a structured timeline:
+
+```json
+{
+  "timeline": [
+    {
+      "date": "2025-05-15",
+      "event": "Event announcement",
+      "source": "News Source",
+      "significance": "Initial announcement"
+    },
+    {
+      "date": "2025-05-18",
+      "event": "Event occurs",
+      "source": "Live Coverage",
+      "significance": "Main event"
+    }
+  ]
+}
+```
+
+### Social Media Monitoring
+
+```json
+{
+  "tool": "grok_twitter",
+  "parameters": {
+    "query": "product launch reactions",
+    "from_date": "2025-06-04",
+    "max_results": 20
+  }
+}
+```
+
+### Before/After Analysis
+
+Run two searches to compare:
+
+**Before**:
+```json
+{
+  "query": "topic sentiment",
+  "to_date": "2025-05-31",
+  "analysis_mode": "comprehensive"
+}
+```
+
+**After**:
+```json
+{
+  "query": "topic sentiment",
+  "from_date": "2025-06-01",
+  "analysis_mode": "comprehensive"
+}
+```
+
+## Troubleshooting
+
+### No Results with Date Filter
+
+If your date-filtered search returns no results:
+
+1. **Verify date range is not too narrow**
+2. **Check if content exists in that timeframe**
+3. **Try broader date range or remove date filter**
+4. **Verify dates are not in the future**
+
+### Unexpected Results
+
+- Publication dates may not match retrieval dates
+- Some content may have incorrect publication dates
+- News aggregators may show aggregation date, not original date
+
+### Future Dates
+
+<Warning>
+While the validation allows future dates, searches for future dates will typically return no results since content hasn't been published yet.
+</Warning>
+
+## API Parameter Reference
+
+Complete parameter specification:
+
+```json
+{
+  "from_date": {
+    "type": "string",
+    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+    "description": "Optional start date (YYYY-MM-DD)"
+  },
+  "to_date": {
+    "type": "string",
+    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+    "description": "Optional end date (YYYY-MM-DD)"
+  }
+}
+```
+
+Available in tools:
+- `grok_search`
+- `grok_web_search`
+- `grok_news_search`
+- `grok_twitter`
