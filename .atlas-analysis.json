@@ -1,0 +1,84 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "Grok Search MCP Server",
+  "projectDescription": "An MCP server providing web search, news search, and Twitter/X search through xAI's Grok API with rich analysis features including timelines, direct quotes, and multiple perspectives.",
+  "theme": "aspen",
+  "primaryColor": "#848c8e",
+  "lightColor": "#11161e",
+  "darkColor": "#cfd0d2",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/analysis-modes",
+              "concepts/search-types",
+              "concepts/caching"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/configuration",
+              "guides/date-filtering",
+              "guides/error-handling",
+              "guides/performance"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Tools",
+            "pages": [
+              "api/grok-search",
+              "api/grok-web-search",
+              "api/grok-news-search",
+              "api/grok-twitter",
+              "api/health-check"
+            ]
+          },
+          {
+            "group": "Response Formats",
+            "pages": [
+              "api/basic-response",
+              "api/comprehensive-response",
+              "api/error-response"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Web search using Grok's AI-powered search capabilities",
+    "News search with timeline analysis and comprehensive context",
+    "Twitter/X search with sentiment analysis and social media insights",
+    "Basic and comprehensive analysis modes for different use cases",
+    "Date range filtering for time-specific searches",
+    "Automatic retry logic with exponential backoff",
+    "Intelligent caching for comprehensive analyses",
+    "Health monitoring and performance metrics",
+    "Enhanced error handling with detailed feedback"
+  ],
+  "publicApiSurface": [
+    "grok_search - General search with configurable types and analysis modes",
+    "grok_web_search - Search general web content",
+    "grok_news_search - Search recent news with timeline analysis",
+    "grok_twitter - Search Twitter/X posts with optional handle filtering",
+    "health_check - Check server health and API connectivity"
+  ]
+}
